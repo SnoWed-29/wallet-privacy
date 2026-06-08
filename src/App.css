@@ -44,13 +44,13 @@ h2 {
   margin-bottom: 12px;
 }
 
-.account-form {
+.simple-form {
   display: grid;
   gap: 8px;
   margin-bottom: 24px;
 }
 
-.account-form label {
+.simple-form label {
   font-weight: 600;
 }
 
@@ -60,6 +60,7 @@ h2 {
 }
 
 input,
+select,
 button {
   border-radius: 8px;
   border: 1px solid transparent;
@@ -76,6 +77,10 @@ button {
 input {
   flex: 1;
   min-width: 0;
+}
+
+select {
+  min-width: 140px;
 }
 
 button {
@@ -103,7 +108,8 @@ button:active {
   border-radius: 8px;
 }
 
-.accounts-section {
+.accounts-section,
+.list-section {
   margin-top: 28px;
 }
 
@@ -111,7 +117,8 @@ button:active {
   color: #666666;
 }
 
-.accounts-list {
+.accounts-list,
+.simple-list {
   display: grid;
   gap: 8px;
   padding: 0;
@@ -119,7 +126,8 @@ button:active {
   list-style: none;
 }
 
-.accounts-list li {
+.accounts-list li,
+.simple-list li {
   display: flex;
   justify-content: space-between;
   gap: 16px;
@@ -129,7 +137,8 @@ button:active {
   border-radius: 8px;
 }
 
-.accounts-list small {
+.accounts-list small,
+.simple-list small {
   color: #666666;
 }
 
@@ -144,6 +153,7 @@ button:active {
   }
 
   input,
+  select,
   button {
     color: #ffffff;
     background-color: #0f0f0f98;
@@ -152,13 +162,15 @@ button:active {
     background-color: #0f0f0f69;
   }
 
-  .accounts-list li {
+  .accounts-list li,
+  .simple-list li {
     background: #1f1f1f;
     border-color: #3a3a3a;
   }
 
   .empty,
-  .accounts-list small {
+  .accounts-list small,
+  .simple-list small {
     color: #bdbdbd;
   }
 }

@@ -22,7 +22,9 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             commands::accounts::create_account,
-            commands::accounts::list_accounts
+            commands::accounts::list_accounts,
+            commands::categories::create_category,
+            commands::categories::list_categories
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
