@@ -70,6 +70,59 @@ type RecurringBill = {
 
 type RecurringFrequency = "daily" | "weekly" | "monthly" | "yearly";
 
+type DashboardSummary = {
+  totalBalanceMinor: number;
+  monthlyIncomeMinor: number;
+  monthlyExpenseMinor: number;
+  monthlyNetMinor: number;
+  accounts: DashboardAccount[];
+  recentTransactions: DashboardRecentTransaction[];
+  activeBudgets: DashboardBudget[];
+  upcomingRecurringBills: DashboardRecurringBill[];
+  activeSavingsGoals: DashboardSavingsGoal[];
+};
+
+type DashboardAccount = {
+  id: string;
+  name: string;
+  balanceMinor: number;
+};
+
+type DashboardRecentTransaction = {
+  amountMinor: number;
+  transactionType: TransactionType;
+  categoryName: string;
+  accountName: string;
+  description: string | null;
+  transactionDate: string;
+};
+
+type DashboardBudget = {
+  name: string;
+  categoryName: string;
+  amountMinor: number;
+  spentMinor: number;
+  remainingMinor: number;
+  progressPercent: number;
+  isNearLimit: boolean;
+  isExceeded: boolean;
+};
+
+type DashboardRecurringBill = {
+  name: string;
+  amountMinor: number;
+  nextDueDate: string;
+  daysRemaining: number;
+};
+
+type DashboardSavingsGoal = {
+  name: string;
+  targetAmountMinor: number;
+  currentAmountMinor: number;
+  remainingAmountMinor: number;
+  progressPercent: number;
+};
+
 type TransactionFormState = {
   accountId: string;
   categoryId: string;
@@ -149,6 +202,7 @@ function App() {
   const [recurringBills, setRecurringBills] = useState<RecurringBill[]>([]);
   const [recurringBillForm, setRecurringBillForm] =
     useState<RecurringBillFormState>(defaultRecurringBillForm);
+  const [dashboard, setDashboard] = useState<DashboardSummary | null>(null);
   const [editingTransactionId, setEditingTransactionId] = useState("");
   const [editTransaction, setEditTransaction] =
     useState<TransactionFormState | null>(null);
@@ -188,6 +242,7 @@ function App() {
   const [payingRecurringBillId, setPayingRecurringBillId] = useState("");
   const [deletingTransactionId, setDeletingTransactionId] = useState("");
   const [isFilteringTransactions, setIsFilteringTransactions] = useState(false);
+  const [isLoadingDashboard, setIsLoadingDashboard] = useState(false);
 
   const matchingCategories = useMemo(
     () =>
@@ -267,6 +322,19 @@ function App() {
     }
   }
 
+  async function loadDashboard() {
+    setIsLoadingDashboard(true);
+
+    try {
+      const summary = await invoke<DashboardSummary>("get_dashboard_summary");
+      setDashboard(summary);
+    } catch (err) {
+      setError(String(err));
+    } finally {
+      setIsLoadingDashboard(false);
+    }
+  }
+
   useEffect(() => {
     loadAccounts();
     loadCategories();
@@ -274,6 +342,7 @@ function App() {
     loadBudgets();
     loadSavingsGoals();
     loadRecurringBills();
+    loadDashboard();
   }, []);
 
   useEffect(() => {
@@ -1153,6 +1222,137 @@ function App() {
     <main className="container">
       <section className="wallet-panel">
         <h1>Wallet</h1>
+
+        <section className="list-section">
+          <div className="section-heading">
+            <h2>Dashboard</h2>
+            <button
+              type="button"
+              onClick={loadDashboard}
+              disabled={isLoadingDashboard}
+            >
+              {isLoadingDashboard ? "Refreshing..." : "Refresh Dashboard"}
+            </button>
+          </div>
+
+          {!dashboard ? (
+            <p className="empty">No dashboard data loaded yet.</p>
+          ) : (
+            <>
+              <div className="summary-grid">
+                <div>
+                  <span>Total Balance</span>
+                  <strong>{formatMinor(dashboard.totalBalanceMinor)}</strong>
+                </div>
+                <div>
+                  <span>Monthly Income</span>
+                  <strong>{formatMinor(dashboard.monthlyIncomeMinor)}</strong>
+                </div>
+                <div>
+                  <span>Monthly Expenses</span>
+                  <strong>{formatMinor(dashboard.monthlyExpenseMinor)}</strong>
+                </div>
+                <div>
+                  <span>Monthly Net</span>
+                  <strong>{formatMinor(dashboard.monthlyNetMinor)}</strong>
+                </div>
+              </div>
+
+              <h3>Accounts</h3>
+              {dashboard.accounts.length === 0 ? (
+                <p className="empty">No active accounts.</p>
+              ) : (
+                <ul className="simple-list">
+                  {dashboard.accounts.map((account) => (
+                    <li key={account.id}>
+                      <span>{account.name}</span>
+                      <small>{formatMinor(account.balanceMinor)}</small>
+                    </li>
+                  ))}
+                </ul>
+              )}
+
+              <h3>Recent Transactions</h3>
+              {dashboard.recentTransactions.length === 0 ? (
+                <p className="empty">No recent transactions.</p>
+              ) : (
+                <ul className="simple-list">
+                  {dashboard.recentTransactions.map((transaction, index) => (
+                    <li key={`${transaction.transactionDate}-${index}`}>
+                      <span>
+                        {transaction.description || transaction.categoryName}
+                      </span>
+                      <small>
+                        {transaction.transactionDate} -{" "}
+                        {transaction.accountName} - {transaction.categoryName} -{" "}
+                        {transaction.transactionType === "income" ? "+" : "-"}
+                        {formatMinor(transaction.amountMinor)}
+                      </small>
+                    </li>
+                  ))}
+                </ul>
+              )}
+
+              <h3>Budgets</h3>
+              {dashboard.activeBudgets.length === 0 ? (
+                <p className="empty">No active budgets.</p>
+              ) : (
+                <ul className="simple-list">
+                  {dashboard.activeBudgets.map((budget) => (
+                    <li key={`${budget.name}-${budget.categoryName}`}>
+                      <span>{budget.name}</span>
+                      <small>
+                        {budget.categoryName} - {budget.progressPercent}% -{" "}
+                        {formatMinor(budget.spentMinor)} spent of{" "}
+                        {formatMinor(budget.amountMinor)}
+                        {budget.isExceeded
+                          ? " - Exceeded"
+                          : budget.isNearLimit
+                            ? " - Near limit"
+                            : ""}
+                      </small>
+                    </li>
+                  ))}
+                </ul>
+              )}
+
+              <h3>Upcoming Bills</h3>
+              {dashboard.upcomingRecurringBills.length === 0 ? (
+                <p className="empty">No bills due in the next 14 days.</p>
+              ) : (
+                <ul className="simple-list">
+                  {dashboard.upcomingRecurringBills.map((bill) => (
+                    <li key={`${bill.name}-${bill.nextDueDate}`}>
+                      <span>{bill.name}</span>
+                      <small>
+                        Due {bill.nextDueDate} - {formatMinor(bill.amountMinor)}{" "}
+                        - {bill.daysRemaining} days remaining
+                      </small>
+                    </li>
+                  ))}
+                </ul>
+              )}
+
+              <h3>Savings Goals</h3>
+              {dashboard.activeSavingsGoals.length === 0 ? (
+                <p className="empty">No active savings goals.</p>
+              ) : (
+                <ul className="simple-list">
+                  {dashboard.activeSavingsGoals.map((goal) => (
+                    <li key={goal.name}>
+                      <span>{goal.name}</span>
+                      <small>
+                        {goal.progressPercent}% -{" "}
+                        {formatMinor(goal.currentAmountMinor)} saved of{" "}
+                        {formatMinor(goal.targetAmountMinor)}
+                      </small>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </>
+          )}
+        </section>
 
         <form className="simple-form" onSubmit={createAccount}>
           <label htmlFor="account-name">Account name</label>

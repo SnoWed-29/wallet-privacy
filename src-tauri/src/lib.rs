@@ -33,6 +33,7 @@ pub fn run() {
             commands::categories::update_category,
             commands::categories::archive_category,
             commands::categories::list_categories,
+            commands::dashboard::get_dashboard_summary,
             commands::recurring_bills::create_recurring_bill,
             commands::recurring_bills::list_recurring_bills,
             commands::recurring_bills::update_recurring_bill,

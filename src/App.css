@@ -123,6 +123,36 @@ button:active {
   margin-top: 28px;
 }
 
+.section-heading {
+  align-items: center;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+}
+
+.summary-grid {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  margin-bottom: 16px;
+}
+
+.summary-grid div {
+  background: #ffffff;
+  border: 1px solid #dddddd;
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.summary-grid span,
+.summary-grid strong {
+  display: block;
+}
+
+.summary-grid strong {
+  margin-top: 4px;
+}
+
 .empty {
   color: #666666;
 }
@@ -199,6 +229,7 @@ button:active {
   }
 
   .accounts-list li,
+  .summary-grid div,
   .simple-list li {
     background: #1f1f1f;
     border-color: #3a3a3a;

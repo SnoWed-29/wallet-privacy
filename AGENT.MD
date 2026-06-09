@@ -142,7 +142,9 @@ Implemented:
 * Mark recurring bill as paid
 * Automatic next due date calculation
 * Recurring bill payments create expense transactions
-* Basic React UI for manually testing accounts, categories, transactions, filters, budgets, savings goals, and recurring bills
+* Dashboard module
+* Read-only dashboard summary
+* Basic React UI for manually testing accounts, categories, transactions, filters, budgets, savings goals, recurring bills, and dashboard
 
 Not yet implemented:
 
@@ -204,6 +206,7 @@ mod.rs
 accounts.rs
 budgets.rs
 categories.rs
+dashboard.rs
 recurring_bills.rs
 savings_goals.rs
 transactions.rs
@@ -226,6 +229,11 @@ service.rs
 categories/
 mod.rs
 model.rs
+dto.rs
+service.rs
+
+dashboard/
+mod.rs
 dto.rs
 service.rs
 
@@ -252,6 +260,7 @@ mod.rs
 account_repository.rs
 budget_repository.rs
 category_repository.rs
+dashboard_repository.rs
 recurring_bill_repository.rs
 savings_goal_repository.rs
 transaction_repository.rs
@@ -288,6 +297,7 @@ Currently registered commands:
 * `update_category`
 * `archive_category`
 * `list_categories`
+* `get_dashboard_summary`
 * `create_transaction`
 * `update_transaction`
 * `delete_transaction`
@@ -562,6 +572,43 @@ Current limitations:
 
 ---
 
+## Dashboard Module
+
+Current dashboard summary fields:
+
+* total_balance_minor
+* monthly_income_minor
+* monthly_expense_minor
+* monthly_net_minor
+* accounts
+* recent_transactions
+* active_budgets
+* upcoming_recurring_bills
+* active_savings_goals
+
+Rules:
+
+* Dashboard is read-only.
+* Dashboard commands must not create, update, archive, or delete data.
+* Current month is determined in Rust.
+* Monthly income is calculated from income transactions in the current month.
+* Monthly expenses are calculated from expense transactions in the current month.
+* Monthly net is monthly income minus monthly expenses.
+* Total balance is calculated from active account balances using the same transaction-based balance logic as account listings.
+* Recent transactions return the latest 10 transactions by transaction date and creation time.
+* Active budget progress is calculated from expense transactions for each budget month.
+* Budgets are marked near limit when progress is at least 80%.
+* Budgets are marked exceeded when progress is at least 100%.
+* Upcoming recurring bills include active bills due within the next 14 days.
+* Savings goal progress is calculated from current amount and target amount.
+
+Current limitations:
+
+* There are no dashboard charts, graphs, forecasts, reports, notifications, or editing controls.
+* Dashboard data refreshes on startup or when the user clicks Refresh Dashboard.
+
+---
+
 ## Money Handling Rules
 
 Never store money using floating point numbers.
@@ -626,6 +673,8 @@ Never:
 Current frontend scope:
 
 * Single React screen in `src/App.tsx`
+* Read-only dashboard section
+* Dashboard refresh button
 * Account creation form
 * Account edit and archive controls
 * Account list
@@ -658,7 +707,7 @@ Do not add:
 
 * Routing
 * Tailwind redesigns
-* Dashboards
+* Dashboard redesigns
 * Charts
 * Reports
 * Notifications
@@ -743,6 +792,8 @@ Expected behavior:
 * Recurring bills can be created, edited, archived, and listed.
 * Recurring bills can be marked as paid.
 * Recurring bill payments create expense transactions and advance the next due date.
+* Dashboard summary can be viewed and refreshed.
+* Dashboard totals, monthly values, recent transactions, budgets, upcoming bills, and savings goal progress are read-only.
 * Data persists after restart.
 
 ---
@@ -761,6 +812,7 @@ Completed foundation:
 * Budgets
 * Savings goals
 * Recurring bills
+* Dashboard
 * Calculated account balances
 * Calculated budget usage
 * Calculated savings goal progress
@@ -804,8 +856,10 @@ A user can:
 15. Mark recurring bills as paid and see generated expense transactions.
 16. See the selected account balance decrease after a recurring bill payment.
 17. See recurring bill next due dates advance for daily, weekly, monthly, and yearly frequencies.
-18. Restart the application.
-19. See previously created non-archived accounts, categories, transactions, budgets, savings goals, and recurring bills.
+18. View and refresh a read-only dashboard summary.
+19. See total balance, monthly income, monthly expenses, monthly net, recent transactions, active budgets, upcoming recurring bills, and savings goal progress.
+20. Restart the application.
+21. See previously created non-archived accounts, categories, transactions, budgets, savings goals, and recurring bills.
 
 without requiring internet access.
 
