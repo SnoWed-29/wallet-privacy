@@ -22,8 +22,12 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             commands::accounts::create_account,
+            commands::accounts::update_account,
+            commands::accounts::archive_account,
             commands::accounts::list_accounts,
             commands::categories::create_category,
+            commands::categories::update_category,
+            commands::categories::archive_category,
             commands::categories::list_categories,
             commands::transactions::create_transaction,
             commands::transactions::update_transaction,

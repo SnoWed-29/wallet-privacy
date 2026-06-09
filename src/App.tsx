@@ -57,11 +57,21 @@ function App() {
   const [editingTransactionId, setEditingTransactionId] = useState("");
   const [editTransaction, setEditTransaction] =
     useState<TransactionFormState | null>(null);
+  const [editingAccountId, setEditingAccountId] = useState("");
+  const [editAccountName, setEditAccountName] = useState("");
+  const [editingCategoryId, setEditingCategoryId] = useState("");
+  const [editCategoryName, setEditCategoryName] = useState("");
+  const [editCategoryType, setEditCategoryType] =
+    useState<TransactionType>("expense");
   const [error, setError] = useState("");
   const [isSavingAccount, setIsSavingAccount] = useState(false);
   const [isSavingCategory, setIsSavingCategory] = useState(false);
+  const [isUpdatingAccount, setIsUpdatingAccount] = useState(false);
+  const [isUpdatingCategory, setIsUpdatingCategory] = useState(false);
   const [isSavingTransaction, setIsSavingTransaction] = useState(false);
   const [isUpdatingTransaction, setIsUpdatingTransaction] = useState(false);
+  const [archivingAccountId, setArchivingAccountId] = useState("");
+  const [archivingCategoryId, setArchivingCategoryId] = useState("");
   const [deletingTransactionId, setDeletingTransactionId] = useState("");
 
   const matchingCategories = useMemo(
@@ -219,6 +229,129 @@ function App() {
   function cancelEditingTransaction() {
     setEditingTransactionId("");
     setEditTransaction(null);
+  }
+
+  function startEditingAccount(account: Account) {
+    setError("");
+    setEditingAccountId(account.id);
+    setEditAccountName(account.name);
+  }
+
+  function cancelEditingAccount() {
+    setEditingAccountId("");
+    setEditAccountName("");
+  }
+
+  async function updateAccount(
+    event: FormEvent<HTMLFormElement>,
+    account: Account,
+  ) {
+    event.preventDefault();
+    setError("");
+    setIsUpdatingAccount(true);
+
+    try {
+      await invoke<Account>("update_account", {
+        request: {
+          id: account.id,
+          name: editAccountName,
+          accountType: account.accountType,
+          currency: account.currency,
+        },
+      });
+      cancelEditingAccount();
+      await loadAccounts();
+    } catch (err) {
+      setError(String(err));
+    } finally {
+      setIsUpdatingAccount(false);
+    }
+  }
+
+  async function archiveAccount(id: string) {
+    setError("");
+    setArchivingAccountId(id);
+
+    try {
+      await invoke("archive_account", {
+        request: { id },
+      });
+      if (editingAccountId === id) {
+        cancelEditingAccount();
+      }
+      if (transactionAccountId === id) {
+        setTransactionAccountId("");
+      }
+      await loadAccounts();
+      await loadTransactions();
+    } catch (err) {
+      setError(String(err));
+    } finally {
+      setArchivingAccountId("");
+    }
+  }
+
+  function startEditingCategory(category: Category) {
+    setError("");
+    setEditingCategoryId(category.id);
+    setEditCategoryName(category.name);
+    setEditCategoryType(category.categoryType);
+  }
+
+  function cancelEditingCategory() {
+    setEditingCategoryId("");
+    setEditCategoryName("");
+    setEditCategoryType("expense");
+  }
+
+  async function updateCategory(
+    event: FormEvent<HTMLFormElement>,
+    category: Category,
+  ) {
+    event.preventDefault();
+    setError("");
+    setIsUpdatingCategory(true);
+
+    try {
+      await invoke<Category>("update_category", {
+        request: {
+          id: category.id,
+          name: editCategoryName,
+          categoryType: editCategoryType,
+          icon: category.icon ?? "",
+          color: category.color ?? "",
+        },
+      });
+      cancelEditingCategory();
+      await loadCategories();
+    } catch (err) {
+      setError(String(err));
+    } finally {
+      setIsUpdatingCategory(false);
+    }
+  }
+
+  async function archiveCategory(id: string) {
+    setError("");
+    setArchivingCategoryId(id);
+
+    try {
+      await invoke("archive_category", {
+        request: { id },
+      });
+      if (editingCategoryId === id) {
+        cancelEditingCategory();
+      }
+      if (transactionCategoryId === id) {
+        setTransactionCategoryId("");
+      }
+      await loadCategories();
+      await loadTransactions();
+    } catch (err) {
+      setError(String(err));
+    } finally {
+      setArchivingCategoryId("");
+    }
   }
 
   async function updateTransaction(event: FormEvent<HTMLFormElement>) {
@@ -424,13 +557,57 @@ function App() {
             <ul className="accounts-list">
               {accounts.map((account) => (
                 <li key={account.id}>
-                  <span>
-                    {account.name} - {account.currency}
-                  </span>
-                  <small>
-                    {account.accountType} - Balance{" "}
-                    {formatMinor(account.balanceMinor)}
-                  </small>
+                  {editingAccountId === account.id ? (
+                    <form
+                      className="edit-form"
+                      onSubmit={(event) => updateAccount(event, account)}
+                    >
+                      <input
+                        value={editAccountName}
+                        onChange={(event) =>
+                          setEditAccountName(event.target.value)
+                        }
+                        placeholder="Account name"
+                      />
+                      <div className="button-row">
+                        <button type="submit" disabled={isUpdatingAccount}>
+                          {isUpdatingAccount ? "Saving..." : "Save"}
+                        </button>
+                        <button type="button" onClick={cancelEditingAccount}>
+                          Cancel
+                        </button>
+                      </div>
+                    </form>
+                  ) : (
+                    <>
+                      <div>
+                        <span>
+                          {account.name} - {account.currency}
+                        </span>
+                        <small>
+                          {account.accountType} - Balance{" "}
+                          {formatMinor(account.balanceMinor)}
+                        </small>
+                      </div>
+                      <div className="button-row">
+                        <button
+                          type="button"
+                          onClick={() => startEditingAccount(account)}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => archiveAccount(account.id)}
+                          disabled={archivingAccountId === account.id}
+                        >
+                          {archivingAccountId === account.id
+                            ? "Archiving..."
+                            : "Archive"}
+                        </button>
+                      </div>
+                    </>
+                  )}
                 </li>
               ))}
             </ul>
@@ -445,8 +622,63 @@ function App() {
             <ul className="simple-list">
               {categories.map((category) => (
                 <li key={category.id}>
-                  <span>{category.name}</span>
-                  <small>{category.categoryType}</small>
+                  {editingCategoryId === category.id ? (
+                    <form
+                      className="edit-form"
+                      onSubmit={(event) => updateCategory(event, category)}
+                    >
+                      <input
+                        value={editCategoryName}
+                        onChange={(event) =>
+                          setEditCategoryName(event.target.value)
+                        }
+                        placeholder="Category name"
+                      />
+                      <select
+                        value={editCategoryType}
+                        onChange={(event) =>
+                          setEditCategoryType(
+                            event.target.value as TransactionType,
+                          )
+                        }
+                      >
+                        <option value="expense">Expense</option>
+                        <option value="income">Income</option>
+                      </select>
+                      <div className="button-row">
+                        <button type="submit" disabled={isUpdatingCategory}>
+                          {isUpdatingCategory ? "Saving..." : "Save"}
+                        </button>
+                        <button type="button" onClick={cancelEditingCategory}>
+                          Cancel
+                        </button>
+                      </div>
+                    </form>
+                  ) : (
+                    <>
+                      <div>
+                        <span>{category.name}</span>
+                        <small>{category.categoryType}</small>
+                      </div>
+                      <div className="button-row">
+                        <button
+                          type="button"
+                          onClick={() => startEditingCategory(category)}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => archiveCategory(category.id)}
+                          disabled={archivingCategoryId === category.id}
+                        >
+                          {archivingCategoryId === category.id
+                            ? "Archiving..."
+                            : "Archive"}
+                        </button>
+                      </div>
+                    </>
+                  )}
                 </li>
               ))}
             </ul>

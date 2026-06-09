@@ -136,4 +136,56 @@ impl AccountRepository {
 
         Ok(account)
     }
+
+    pub async fn update(
+        pool: &SqlitePool,
+        id: String,
+        name: String,
+        account_type: String,
+        currency: String,
+    ) -> Result<Account, AppError> {
+        let updated_at = Utc::now().to_rfc3339();
+
+        sqlx::query(
+            r#"
+            UPDATE accounts
+            SET
+                name = ?,
+                account_type = ?,
+                currency = ?,
+                updated_at = ?
+            WHERE id = ?
+            "#,
+        )
+        .bind(name)
+        .bind(account_type)
+        .bind(currency)
+        .bind(updated_at)
+        .bind(&id)
+        .execute(pool)
+        .await?;
+
+        Self::find_by_id(pool, &id)
+            .await?
+            .ok_or_else(|| AppError::Validation("Account does not exist.".to_string()))
+    }
+
+    pub async fn archive(pool: &SqlitePool, id: &str) -> Result<u64, AppError> {
+        let updated_at = Utc::now().to_rfc3339();
+        let result = sqlx::query(
+            r#"
+            UPDATE accounts
+            SET
+                is_archived = 1,
+                updated_at = ?
+            WHERE id = ?
+            "#,
+        )
+        .bind(updated_at)
+        .bind(id)
+        .execute(pool)
+        .await?;
+
+        Ok(result.rows_affected())
+    }
 }

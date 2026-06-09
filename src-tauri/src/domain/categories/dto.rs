@@ -8,3 +8,19 @@ pub struct CreateCategoryRequest {
     pub icon: Option<String>,
     pub color: Option<String>,
 }
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UpdateCategoryRequest {
+    pub id: String,
+    pub name: String,
+    pub category_type: String,
+    pub icon: Option<String>,
+    pub color: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ArchiveCategoryRequest {
+    pub id: String,
+}

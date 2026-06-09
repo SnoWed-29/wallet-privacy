@@ -101,4 +101,59 @@ impl CategoryRepository {
 
         Ok(category)
     }
+
+    pub async fn update(
+        pool: &SqlitePool,
+        id: String,
+        name: String,
+        category_type: String,
+        icon: Option<String>,
+        color: Option<String>,
+    ) -> Result<Category, AppError> {
+        let updated_at = Utc::now().to_rfc3339();
+
+        sqlx::query(
+            r#"
+            UPDATE categories
+            SET
+                name = ?,
+                category_type = ?,
+                icon = ?,
+                color = ?,
+                updated_at = ?
+            WHERE id = ?
+            "#,
+        )
+        .bind(name)
+        .bind(category_type)
+        .bind(icon)
+        .bind(color)
+        .bind(updated_at)
+        .bind(&id)
+        .execute(pool)
+        .await?;
+
+        Self::find_by_id(pool, &id)
+            .await?
+            .ok_or_else(|| AppError::Validation("Category does not exist.".to_string()))
+    }
+
+    pub async fn archive(pool: &SqlitePool, id: &str) -> Result<u64, AppError> {
+        let updated_at = Utc::now().to_rfc3339();
+        let result = sqlx::query(
+            r#"
+            UPDATE categories
+            SET
+                is_archived = 1,
+                updated_at = ?
+            WHERE id = ?
+            "#,
+        )
+        .bind(updated_at)
+        .bind(id)
+        .execute(pool)
+        .await?;
+
+        Ok(result.rows_affected())
+    }
 }
