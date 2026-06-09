@@ -11,8 +11,9 @@ The project must work without a mandatory online account, cloud backend, or inte
 Current technology stack:
 
 * Tauri 2
-* React
+* React 19
 * TypeScript
+* Vite
 * Rust
 * SQLite
 * SQLx
@@ -97,30 +98,39 @@ Phase 1:
 
 Core financial foundation.
 
-Included:
+Implemented:
 
-* SQLite initialization
-* SQLx migrations
+* SQLite initialization in the Tauri app data directory
+* SQLx migrations embedded from `src-tauri/migrations`
+* Shared application state with a SQLite connection pool
 * Accounts module
 * Create account
-* List accounts
-* Basic React UI for testing
+* List non-archived accounts
+* Categories module
+* Create category
+* List non-archived categories
+* Basic React UI for manually testing accounts and categories
 
-Excluded:
+Not yet implemented:
 
-* Categories
+* Account editing
+* Account archiving UI or command
+* Category editing
+* Category archiving UI or command
 * Transactions
 * Budgets
 * Savings goals
 * Recurring bills
 * Reports
+* Import/export
+* Backups
 * Encryption
 * Cloud synchronization
 * Mobile support
 * Authentication
 * Bank integrations
 
-Do not implement excluded features unless explicitly requested.
+Do not implement not-yet-implemented features unless explicitly requested.
 
 ---
 
@@ -131,10 +141,10 @@ Use a modular monolith.
 Communication flow:
 
 React
-→ Tauri Command
-→ Service
-→ Repository
-→ SQLite
+-> Tauri Command
+-> Service
+-> Repository
+-> SQLite
 
 Rules:
 
@@ -144,12 +154,14 @@ Rules:
 * Rust validates all requests.
 * Repositories contain database queries.
 * Commands should remain thin.
+* Domain modules own validation and request normalization.
+* Repository methods should use explicit SQL and parameter binding.
 
 ---
 
 ## Backend Folder Structure
 
-Use the following structure:
+Current backend structure:
 
 src-tauri/src/
 
@@ -163,6 +175,7 @@ connection.rs
 commands/
 mod.rs
 accounts.rs
+categories.rs
 
 domain/
 mod.rs
@@ -173,9 +186,16 @@ model.rs
 dto.rs
 service.rs
 
+categories/
+mod.rs
+model.rs
+dto.rs
+service.rs
+
 repositories/
 mod.rs
 account_repository.rs
+category_repository.rs
 
 state/
 mod.rs
@@ -184,6 +204,25 @@ app_state.rs
 errors/
 mod.rs
 app_error.rs
+
+Migrations:
+
+src-tauri/migrations/
+0001_create_accounts.sql
+0002_create_categories.sql
+
+---
+
+## Tauri Commands
+
+Currently registered commands:
+
+* `create_account`
+* `list_accounts`
+* `create_category`
+* `list_categories`
+
+Command handlers should delegate to services and avoid business logic.
 
 ---
 
@@ -202,11 +241,54 @@ Current account fields:
 
 Rules:
 
-* Name is required.
+* Name is required after trimming.
+* Initial balance defaults to 0.
 * Initial balance cannot be negative.
-* Currency defaults to MAD.
-* Account type defaults to cash.
+* Currency is uppercased after trimming.
+* Currency defaults to MAD when omitted or blank.
+* Account type is lowercased after trimming.
+* Account type defaults to cash when omitted or blank.
+* New accounts are created with `is_archived = false`.
 * Archived accounts are hidden from normal account listings.
+* Accounts are listed newest first by `created_at`.
+
+Current limitations:
+
+* The frontend creates only cash accounts in MAD with an initial balance of 0.
+* There is no edit, archive, restore, or delete flow yet.
+
+---
+
+## Category Module
+
+Current category fields:
+
+* id
+* name
+* category_type
+* icon
+* color
+* is_archived
+* created_at
+* updated_at
+
+Rules:
+
+* Name is required after trimming.
+* Category type is lowercased after trimming.
+* Category type must be either `income` or `expense`.
+* Blank icon values are stored as NULL.
+* Blank color values are stored as NULL.
+* New categories are created with `is_archived = false`.
+* Archived categories are hidden from normal category listings.
+* Categories are listed newest first by `created_at`.
+
+Current limitations:
+
+* The frontend supports only name and type input.
+* The frontend sends blank icon and color values.
+* There is no edit, archive, restore, or delete flow yet.
+* Categories are not connected to transactions yet because transactions do not exist.
 
 ---
 
@@ -226,8 +308,8 @@ Store all monetary values using integer minor units.
 
 Examples:
 
-* 10.99 MAD → 1099
-* 150.00 MAD → 15000
+* 10.99 MAD -> 1099
+* 150.00 MAD -> 15000
 
 Use:
 
@@ -245,17 +327,27 @@ Use:
 * Explicit SQL queries
 * Migrations
 
+Current database behavior:
+
+* The database file is `wallet.db`.
+* The database is created in the Tauri app data directory.
+* The database is created automatically if missing.
+* Migrations run during Tauri setup.
+* Foreign keys are enabled in the SQLite connection options and with `PRAGMA foreign_keys = ON`.
+
 Always:
 
-* Use parameterized queries
-* Use transactions where appropriate
-* Enable foreign keys
-* Validate data before insertion
+* Use parameterized queries.
+* Use transactions where appropriate.
+* Enable foreign keys for new connections.
+* Validate data before insertion.
+* Store timestamps as RFC 3339 strings unless the project chooses a different convention later.
 
 Never:
 
-* Build SQL using string concatenation
-* Expose arbitrary SQL to the frontend
+* Build SQL using string concatenation.
+* Expose arbitrary SQL to the frontend.
+* Add schema changes without a migration.
 
 ---
 
@@ -263,9 +355,16 @@ Never:
 
 Current frontend scope:
 
+* Single React screen in `src/App.tsx`
 * Account creation form
 * Account list
+* Category creation form
+* Category type selector for income or expense
+* Category list
 * Error display
+* Basic saving state for create actions
+* Empty states for accounts and categories
+* Responsive stacked form rows on narrow screens
 
 Keep UI simple.
 
@@ -325,18 +424,26 @@ After backend modifications run:
 
 cargo check
 
+from `src-tauri`.
+
 After frontend modifications run:
+
+npm run build
+
+For full manual application verification run:
 
 npm run tauri dev
 
 Expected behavior:
 
-* Application starts successfully
-* SQLite database is created automatically
-* Migrations run automatically
-* Accounts can be created
-* Accounts can be listed
-* Data persists after restart
+* Application starts successfully.
+* SQLite database is created automatically.
+* Migrations run automatically.
+* Accounts can be created.
+* Accounts can be listed.
+* Categories can be created.
+* Categories can be listed.
+* Data persists after restart.
 
 ---
 
@@ -344,12 +451,14 @@ Expected behavior:
 
 A user can:
 
-1. Launch the application
-2. Create an account
-3. View existing accounts
-4. Restart the application
-5. See previously created accounts
+1. Launch the application.
+2. Create an account.
+3. View existing accounts.
+4. Create income and expense categories.
+5. View existing categories.
+6. Restart the application.
+7. See previously created accounts and categories.
 
 without requiring internet access.
 
-Only after this is complete should development move to Categories and Transactions.
+After this foundation is stable, development can move to transactions.
