@@ -126,11 +126,18 @@ Implemented:
 * Update budget
 * Archive budget
 * Calculated budget usage from expense transactions
-* Basic React UI for manually testing accounts, categories, transactions, filters, and budgets
+* Savings goals module
+* Create savings goal
+* List non-archived savings goals
+* Update savings goal
+* Archive savings goal
+* Contribute to savings goal
+* Calculated savings goal progress
+* Savings goal contributions create expense transactions
+* Basic React UI for manually testing accounts, categories, transactions, filters, budgets, and savings goals
 
 Not yet implemented:
 
-* Savings goals
 * Recurring bills
 * Reports
 * Charts
@@ -190,6 +197,7 @@ mod.rs
 accounts.rs
 budgets.rs
 categories.rs
+savings_goals.rs
 transactions.rs
 
 domain/
@@ -213,6 +221,12 @@ model.rs
 dto.rs
 service.rs
 
+savings_goals/
+mod.rs
+model.rs
+dto.rs
+service.rs
+
 transactions/
 mod.rs
 model.rs
@@ -224,6 +238,7 @@ mod.rs
 account_repository.rs
 budget_repository.rs
 category_repository.rs
+savings_goal_repository.rs
 transaction_repository.rs
 
 state/
@@ -241,6 +256,7 @@ src-tauri/migrations/
 0002_create_categories.sql
 0003_create_transactions.sql
 0004_create_budgets.sql
+0005_create_savings_goals.sql
 
 ---
 
@@ -265,6 +281,11 @@ Currently registered commands:
 * `list_budgets`
 * `update_budget`
 * `archive_budget`
+* `create_savings_goal`
+* `list_savings_goals`
+* `update_savings_goal`
+* `archive_savings_goal`
+* `contribute_to_savings_goal`
 
 Command handlers should delegate to services and avoid business logic.
 
@@ -419,6 +440,54 @@ Current limitations:
 
 ---
 
+## Savings Goals Module
+
+Current savings goal fields:
+
+* id
+* name
+* target_amount_minor
+* current_amount_minor
+* deadline_date
+* is_archived
+* created_at
+* updated_at
+
+Calculated savings goal list fields:
+
+* remaining_amount_minor
+* progress_percent
+
+Rules:
+
+* Name is required after trimming.
+* Target amount must be greater than 0.
+* Current amount defaults to 0 when omitted.
+* Current amount cannot be negative.
+* Current amount cannot exceed target amount.
+* Deadline date is optional.
+* New savings goals are created with `is_archived = false`.
+* Archived savings goals are hidden from normal savings goal listings.
+* Savings goals are archived rather than physically deleted.
+* Contributions require an existing, non-archived savings goal.
+* Contributions require an existing, non-archived account.
+* Contribution amount must be greater than 0.
+* Contributions cannot make the current amount exceed the target amount.
+* Contributions create real expense transactions.
+* Contributions use an expense category named `Savings Goal Contributions`.
+* If no active expense category named `Savings Goal Contributions` exists, it is created automatically.
+* Contribution transaction descriptions default to `Contribution to <goal name>`.
+* Contribution transaction creation and savings goal current amount updates run in one database transaction.
+* If any contribution step fails, the whole contribution rolls back.
+* Savings goal progress is calculated as `current_amount_minor / target_amount_minor * 100`.
+
+Current limitations:
+
+* There is no savings goal restore or physical delete flow.
+* There are no savings goal reports, charts, notifications, or recurring contribution rules.
+
+---
+
 ## Money Handling Rules
 
 Never store money using floating point numbers.
@@ -497,9 +566,13 @@ Current frontend scope:
 * Budget creation form
 * Budget edit and archive controls
 * Budget list with amount, spent, remaining, and progress percentage
+* Savings goal creation form
+* Savings goal edit and archive controls
+* Savings goal contribution controls
+* Savings goal list with target, current, remaining, and progress percentage
 * Error display
 * Basic saving state for create, update, archive, delete, and filter actions
-* Empty states for accounts, categories, budgets, and transactions
+* Empty states for accounts, categories, budgets, savings goals, and transactions
 * Responsive stacked form rows on narrow screens
 
 Keep UI simple.
@@ -587,6 +660,9 @@ Expected behavior:
 * Account balances update from transaction history.
 * Budgets can be created, edited, archived, and listed.
 * Budget spent, remaining, and progress values are calculated from expense transactions.
+* Savings goals can be created, edited, archived, and listed.
+* Savings goal contributions create expense transactions.
+* Savings goal progress and remaining values are calculated from stored savings goal amounts.
 * Data persists after restart.
 
 ---
@@ -603,13 +679,14 @@ Completed foundation:
 * Account management
 * Category management
 * Budgets
+* Savings goals
 * Calculated account balances
 * Calculated budget usage
+* Calculated savings goal progress
 * SQLite persistence
 
 Future work requires an explicit request before implementation:
 
-* Savings goals
 * Recurring bills
 * Reports
 * Charts
@@ -637,9 +714,13 @@ A user can:
 7. Create, edit, delete, filter, and search transactions.
 8. Create, edit, archive, and view budgets.
 9. See budget spent, remaining, and progress values calculated from expense transactions.
-10. Restart the application.
-11. See previously created non-archived accounts, categories, transactions, and budgets.
+10. Create, edit, archive, and view savings goals.
+11. Contribute to a savings goal and see a generated expense transaction.
+12. See the selected account balance decrease after a savings goal contribution.
+13. See savings goal remaining and progress values.
+14. Restart the application.
+15. See previously created non-archived accounts, categories, transactions, budgets, and savings goals.
 
 without requiring internet access.
 
-After this foundation is stable, development can move to savings goals, recurring bills, reports, import/export, backups, encryption, and other explicitly requested roadmap items.
+After this foundation is stable, development can move to recurring bills, reports, import/export, backups, encryption, and other explicitly requested roadmap items.

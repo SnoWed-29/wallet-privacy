@@ -44,6 +44,16 @@ type Budget = {
   year: number;
 };
 
+type SavingsGoal = {
+  id: string;
+  name: string;
+  targetAmountMinor: number;
+  currentAmountMinor: number;
+  remainingAmountMinor: number;
+  progressPercent: number;
+  deadlineDate: string | null;
+};
+
 type TransactionFormState = {
   accountId: string;
   categoryId: string;
@@ -70,6 +80,18 @@ type BudgetFormState = {
   year: string;
 };
 
+type SavingsGoalFormState = {
+  name: string;
+  targetAmount: string;
+  currentAmount: string;
+  deadlineDate: string;
+};
+
+type SavingsGoalContributionState = {
+  accountId: string;
+  amount: string;
+};
+
 function App() {
   const [accountName, setAccountName] = useState("");
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -92,11 +114,20 @@ function App() {
   const [budgetForm, setBudgetForm] = useState<BudgetFormState>(
     defaultBudgetForm,
   );
+  const [savingsGoals, setSavingsGoals] = useState<SavingsGoal[]>([]);
+  const [savingsGoalForm, setSavingsGoalForm] =
+    useState<SavingsGoalFormState>(emptySavingsGoalForm);
+  const [savingsGoalContributions, setSavingsGoalContributions] = useState<
+    Record<string, SavingsGoalContributionState>
+  >({});
   const [editingTransactionId, setEditingTransactionId] = useState("");
   const [editTransaction, setEditTransaction] =
     useState<TransactionFormState | null>(null);
   const [editingBudgetId, setEditingBudgetId] = useState("");
   const [editBudget, setEditBudget] = useState<BudgetFormState | null>(null);
+  const [editingSavingsGoalId, setEditingSavingsGoalId] = useState("");
+  const [editSavingsGoal, setEditSavingsGoal] =
+    useState<SavingsGoalFormState | null>(null);
   const [editingAccountId, setEditingAccountId] = useState("");
   const [editAccountName, setEditAccountName] = useState("");
   const [editingCategoryId, setEditingCategoryId] = useState("");
@@ -107,14 +138,18 @@ function App() {
   const [isSavingAccount, setIsSavingAccount] = useState(false);
   const [isSavingCategory, setIsSavingCategory] = useState(false);
   const [isSavingBudget, setIsSavingBudget] = useState(false);
+  const [isSavingSavingsGoal, setIsSavingSavingsGoal] = useState(false);
   const [isUpdatingAccount, setIsUpdatingAccount] = useState(false);
   const [isUpdatingCategory, setIsUpdatingCategory] = useState(false);
   const [isUpdatingBudget, setIsUpdatingBudget] = useState(false);
+  const [isUpdatingSavingsGoal, setIsUpdatingSavingsGoal] = useState(false);
   const [isSavingTransaction, setIsSavingTransaction] = useState(false);
   const [isUpdatingTransaction, setIsUpdatingTransaction] = useState(false);
   const [archivingAccountId, setArchivingAccountId] = useState("");
   const [archivingCategoryId, setArchivingCategoryId] = useState("");
   const [archivingBudgetId, setArchivingBudgetId] = useState("");
+  const [archivingSavingsGoalId, setArchivingSavingsGoalId] = useState("");
+  const [contributingSavingsGoalId, setContributingSavingsGoalId] = useState("");
   const [deletingTransactionId, setDeletingTransactionId] = useState("");
   const [isFilteringTransactions, setIsFilteringTransactions] = useState(false);
 
@@ -178,11 +213,21 @@ function App() {
     }
   }
 
+  async function loadSavingsGoals() {
+    try {
+      const savedGoals = await invoke<SavingsGoal[]>("list_savings_goals");
+      setSavingsGoals(savedGoals);
+    } catch (err) {
+      setError(String(err));
+    }
+  }
+
   useEffect(() => {
     loadAccounts();
     loadCategories();
     loadTransactions();
     loadBudgets();
+    loadSavingsGoals();
   }, []);
 
   useEffect(() => {
@@ -287,6 +332,7 @@ function App() {
       await loadTransactions();
       await loadAccounts();
       await loadBudgets();
+      await loadSavingsGoals();
     } catch (err) {
       setError(String(err));
     } finally {
@@ -469,6 +515,7 @@ function App() {
       await loadTransactions();
       await loadAccounts();
       await loadBudgets();
+      await loadSavingsGoals();
     } catch (err) {
       setError(String(err));
     } finally {
@@ -490,6 +537,7 @@ function App() {
       await loadTransactions();
       await loadAccounts();
       await loadBudgets();
+      await loadSavingsGoals();
     } catch (err) {
       setError(String(err));
     } finally {
@@ -657,6 +705,195 @@ function App() {
       setError(String(err));
     } finally {
       setArchivingBudgetId("");
+    }
+  }
+
+  function updateSavingsGoalForm(changes: Partial<SavingsGoalFormState>) {
+    setSavingsGoalForm((current) => ({
+      ...current,
+      ...changes,
+    }));
+  }
+
+  function updateEditSavingsGoal(changes: Partial<SavingsGoalFormState>) {
+    setEditSavingsGoal((current) => {
+      if (!current) {
+        return current;
+      }
+
+      return {
+        ...current,
+        ...changes,
+      };
+    });
+  }
+
+  function updateSavingsGoalContribution(
+    goalId: string,
+    changes: Partial<SavingsGoalContributionState>,
+  ) {
+    setSavingsGoalContributions((current) => ({
+      ...current,
+      [goalId]: {
+        accountId: changes.accountId ?? current[goalId]?.accountId ?? "",
+        amount: changes.amount ?? current[goalId]?.amount ?? "",
+      },
+    }));
+  }
+
+  async function createSavingsGoal(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError("");
+
+    const targetAmountMinor = normalAmountToMinor(savingsGoalForm.targetAmount);
+    if (targetAmountMinor === null) {
+      setError("Enter a savings goal target amount greater than 0.");
+      return;
+    }
+
+    const currentAmountMinor = optionalNormalAmountToMinor(
+      savingsGoalForm.currentAmount,
+    );
+    if (currentAmountMinor === null) {
+      setError("Enter a current amount of 0 or greater.");
+      return;
+    }
+
+    setIsSavingSavingsGoal(true);
+
+    try {
+      await invoke<SavingsGoal>("create_savings_goal", {
+        request: {
+          name: savingsGoalForm.name,
+          targetAmountMinor,
+          currentAmountMinor,
+          deadlineDate: savingsGoalForm.deadlineDate,
+        },
+      });
+      setSavingsGoalForm(emptySavingsGoalForm());
+      await loadSavingsGoals();
+    } catch (err) {
+      setError(String(err));
+    } finally {
+      setIsSavingSavingsGoal(false);
+    }
+  }
+
+  function startEditingSavingsGoal(goal: SavingsGoal) {
+    setError("");
+    setEditingSavingsGoalId(goal.id);
+    setEditSavingsGoal({
+      name: goal.name,
+      targetAmount: minorToNormalAmount(goal.targetAmountMinor),
+      currentAmount: minorToNormalAmount(goal.currentAmountMinor),
+      deadlineDate: goal.deadlineDate ?? "",
+    });
+  }
+
+  function cancelEditingSavingsGoal() {
+    setEditingSavingsGoalId("");
+    setEditSavingsGoal(null);
+  }
+
+  async function updateSavingsGoal(
+    event: FormEvent<HTMLFormElement>,
+    goal: SavingsGoal,
+  ) {
+    event.preventDefault();
+    setError("");
+
+    if (!editSavingsGoal) {
+      return;
+    }
+
+    const targetAmountMinor = normalAmountToMinor(editSavingsGoal.targetAmount);
+    if (targetAmountMinor === null) {
+      setError("Enter a savings goal target amount greater than 0.");
+      return;
+    }
+
+    const currentAmountMinor = optionalNormalAmountToMinor(
+      editSavingsGoal.currentAmount,
+    );
+    if (currentAmountMinor === null) {
+      setError("Enter a current amount of 0 or greater.");
+      return;
+    }
+
+    setIsUpdatingSavingsGoal(true);
+
+    try {
+      await invoke<SavingsGoal>("update_savings_goal", {
+        request: {
+          id: goal.id,
+          name: editSavingsGoal.name,
+          targetAmountMinor,
+          currentAmountMinor,
+          deadlineDate: editSavingsGoal.deadlineDate,
+        },
+      });
+      cancelEditingSavingsGoal();
+      await loadSavingsGoals();
+    } catch (err) {
+      setError(String(err));
+    } finally {
+      setIsUpdatingSavingsGoal(false);
+    }
+  }
+
+  async function archiveSavingsGoal(id: string) {
+    setError("");
+    setArchivingSavingsGoalId(id);
+
+    try {
+      await invoke("archive_savings_goal", {
+        request: { id },
+      });
+      if (editingSavingsGoalId === id) {
+        cancelEditingSavingsGoal();
+      }
+      await loadSavingsGoals();
+    } catch (err) {
+      setError(String(err));
+    } finally {
+      setArchivingSavingsGoalId("");
+    }
+  }
+
+  async function contributeToSavingsGoal(goal: SavingsGoal) {
+    const contribution = savingsGoalContributions[goal.id] ?? {
+      accountId: accounts[0]?.id ?? "",
+      amount: "",
+    };
+    setError("");
+
+    const amountMinor = normalAmountToMinor(contribution.amount);
+    if (amountMinor === null) {
+      setError("Enter a contribution amount greater than 0.");
+      return;
+    }
+
+    setContributingSavingsGoalId(goal.id);
+
+    try {
+      await invoke<SavingsGoal>("contribute_to_savings_goal", {
+        request: {
+          savingsGoalId: goal.id,
+          accountId: contribution.accountId,
+          amountMinor,
+          transactionDate: todayInputValue(),
+          description: "",
+        },
+      });
+      updateSavingsGoalContribution(goal.id, { amount: "" });
+      await loadSavingsGoals();
+      await loadTransactions();
+      await loadAccounts();
+      await loadCategories();
+    } catch (err) {
+      setError(String(err));
+    } finally {
+      setContributingSavingsGoalId("");
     }
   }
 
@@ -1102,6 +1339,193 @@ function App() {
         </section>
 
         <section className="list-section">
+          <h2>Savings Goals</h2>
+          <form className="simple-form" onSubmit={createSavingsGoal}>
+            <div className="form-grid">
+              <input
+                value={savingsGoalForm.name}
+                onChange={(event) =>
+                  updateSavingsGoalForm({ name: event.target.value })
+                }
+                placeholder="Goal name"
+              />
+              <input
+                value={savingsGoalForm.targetAmount}
+                onChange={(event) =>
+                  updateSavingsGoalForm({ targetAmount: event.target.value })
+                }
+                inputMode="decimal"
+                placeholder="Target amount"
+              />
+              <input
+                value={savingsGoalForm.currentAmount}
+                onChange={(event) =>
+                  updateSavingsGoalForm({ currentAmount: event.target.value })
+                }
+                inputMode="decimal"
+                placeholder="Current amount"
+              />
+              <input
+                type="date"
+                value={savingsGoalForm.deadlineDate}
+                onChange={(event) =>
+                  updateSavingsGoalForm({ deadlineDate: event.target.value })
+                }
+              />
+              <button type="submit" disabled={isSavingSavingsGoal}>
+                {isSavingSavingsGoal ? "Creating..." : "Create goal"}
+              </button>
+            </div>
+          </form>
+
+          {savingsGoals.length === 0 ? (
+            <p className="empty">No savings goals yet.</p>
+          ) : (
+            <ul className="simple-list">
+              {savingsGoals.map((goal) => {
+                const contribution = savingsGoalContributions[goal.id] ?? {
+                  accountId: accounts[0]?.id ?? "",
+                  amount: "",
+                };
+
+                return (
+                  <li key={goal.id}>
+                    {editingSavingsGoalId === goal.id && editSavingsGoal ? (
+                      <form
+                        className="edit-form"
+                        onSubmit={(event) => updateSavingsGoal(event, goal)}
+                      >
+                        <input
+                          value={editSavingsGoal.name}
+                          onChange={(event) =>
+                            updateEditSavingsGoal({ name: event.target.value })
+                          }
+                          placeholder="Goal name"
+                        />
+                        <input
+                          value={editSavingsGoal.targetAmount}
+                          onChange={(event) =>
+                            updateEditSavingsGoal({
+                              targetAmount: event.target.value,
+                            })
+                          }
+                          inputMode="decimal"
+                          placeholder="Target amount"
+                        />
+                        <input
+                          value={editSavingsGoal.currentAmount}
+                          onChange={(event) =>
+                            updateEditSavingsGoal({
+                              currentAmount: event.target.value,
+                            })
+                          }
+                          inputMode="decimal"
+                          placeholder="Current amount"
+                        />
+                        <input
+                          type="date"
+                          value={editSavingsGoal.deadlineDate}
+                          onChange={(event) =>
+                            updateEditSavingsGoal({
+                              deadlineDate: event.target.value,
+                            })
+                          }
+                        />
+                        <div className="button-row">
+                          <button
+                            type="submit"
+                            disabled={isUpdatingSavingsGoal}
+                          >
+                            {isUpdatingSavingsGoal ? "Saving..." : "Save"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={cancelEditingSavingsGoal}
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </form>
+                    ) : (
+                      <>
+                        <div>
+                          <span>{goal.name}</span>
+                          <small>
+                            Target {formatMinor(goal.targetAmountMinor)} -
+                            Current {formatMinor(goal.currentAmountMinor)} -
+                            Remaining {formatMinor(goal.remainingAmountMinor)} -
+                            {goal.progressPercent}%
+                            {goal.deadlineDate
+                              ? ` - Deadline ${goal.deadlineDate}`
+                              : ""}
+                          </small>
+                        </div>
+                        <div className="form-grid">
+                          <select
+                            value={contribution.accountId}
+                            onChange={(event) =>
+                              updateSavingsGoalContribution(goal.id, {
+                                accountId: event.target.value,
+                              })
+                            }
+                          >
+                            <option value="">Select account</option>
+                            {accounts.map((account) => (
+                              <option key={account.id} value={account.id}>
+                                {account.name}
+                              </option>
+                            ))}
+                          </select>
+                          <input
+                            value={contribution.amount}
+                            onChange={(event) =>
+                              updateSavingsGoalContribution(goal.id, {
+                                amount: event.target.value,
+                              })
+                            }
+                            inputMode="decimal"
+                            placeholder="Contribution amount"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => contributeToSavingsGoal(goal)}
+                            disabled={
+                              contributingSavingsGoalId === goal.id ||
+                              accounts.length === 0
+                            }
+                          >
+                            {contributingSavingsGoalId === goal.id
+                              ? "Contributing..."
+                              : "Contribute"}
+                          </button>
+                        </div>
+                        <div className="button-row">
+                          <button
+                            type="button"
+                            onClick={() => startEditingSavingsGoal(goal)}
+                          >
+                            Edit
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => archiveSavingsGoal(goal.id)}
+                            disabled={archivingSavingsGoalId === goal.id}
+                          >
+                            {archivingSavingsGoalId === goal.id
+                              ? "Archiving..."
+                              : "Archive"}
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </section>
+
+        <section className="list-section">
           <h2>Transactions</h2>
           <form className="simple-form" onSubmit={applyTransactionFilters}>
             <div className="form-grid">
@@ -1334,6 +1758,15 @@ function defaultBudgetForm(): BudgetFormState {
   };
 }
 
+function emptySavingsGoalForm(): SavingsGoalFormState {
+  return {
+    name: "",
+    targetAmount: "",
+    currentAmount: "",
+    deadlineDate: "",
+  };
+}
+
 function monthName(month: number) {
   return (
     monthOptions.find((monthOption) => Number(monthOption.value) === month)
@@ -1370,6 +1803,14 @@ function normalAmountToMinor(value: string) {
   }
 
   return amountMinor;
+}
+
+function optionalNormalAmountToMinor(value: string) {
+  if (value.trim() === "") {
+    return 0;
+  }
+
+  return normalAmountToMinor(value);
 }
 
 function formatMinor(value: number) {
