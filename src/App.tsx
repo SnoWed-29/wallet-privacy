@@ -31,6 +31,19 @@ type Transaction = {
   transactionDate: string;
 };
 
+type Budget = {
+  id: string;
+  name: string;
+  categoryId: string;
+  categoryName: string;
+  amountMinor: number;
+  spentMinor: number;
+  remainingMinor: number;
+  progressPercent: number;
+  month: number;
+  year: number;
+};
+
 type TransactionFormState = {
   accountId: string;
   categoryId: string;
@@ -47,6 +60,14 @@ type TransactionFilterState = {
   startDate: string;
   endDate: string;
   search: string;
+};
+
+type BudgetFormState = {
+  name: string;
+  categoryId: string;
+  amount: string;
+  month: string;
+  year: string;
 };
 
 function App() {
@@ -67,9 +88,15 @@ function App() {
     useState<TransactionFilterState>(emptyTransactionFilters);
   const [appliedTransactionFilters, setAppliedTransactionFilters] =
     useState<TransactionFilterState>(emptyTransactionFilters);
+  const [budgets, setBudgets] = useState<Budget[]>([]);
+  const [budgetForm, setBudgetForm] = useState<BudgetFormState>(
+    defaultBudgetForm,
+  );
   const [editingTransactionId, setEditingTransactionId] = useState("");
   const [editTransaction, setEditTransaction] =
     useState<TransactionFormState | null>(null);
+  const [editingBudgetId, setEditingBudgetId] = useState("");
+  const [editBudget, setEditBudget] = useState<BudgetFormState | null>(null);
   const [editingAccountId, setEditingAccountId] = useState("");
   const [editAccountName, setEditAccountName] = useState("");
   const [editingCategoryId, setEditingCategoryId] = useState("");
@@ -79,12 +106,15 @@ function App() {
   const [error, setError] = useState("");
   const [isSavingAccount, setIsSavingAccount] = useState(false);
   const [isSavingCategory, setIsSavingCategory] = useState(false);
+  const [isSavingBudget, setIsSavingBudget] = useState(false);
   const [isUpdatingAccount, setIsUpdatingAccount] = useState(false);
   const [isUpdatingCategory, setIsUpdatingCategory] = useState(false);
+  const [isUpdatingBudget, setIsUpdatingBudget] = useState(false);
   const [isSavingTransaction, setIsSavingTransaction] = useState(false);
   const [isUpdatingTransaction, setIsUpdatingTransaction] = useState(false);
   const [archivingAccountId, setArchivingAccountId] = useState("");
   const [archivingCategoryId, setArchivingCategoryId] = useState("");
+  const [archivingBudgetId, setArchivingBudgetId] = useState("");
   const [deletingTransactionId, setDeletingTransactionId] = useState("");
   const [isFilteringTransactions, setIsFilteringTransactions] = useState(false);
 
@@ -92,6 +122,11 @@ function App() {
     () =>
       categories.filter((category) => category.categoryType === transactionType),
     [categories, transactionType],
+  );
+
+  const expenseCategories = useMemo(
+    () => categories.filter((category) => category.categoryType === "expense"),
+    [categories],
   );
 
   async function loadAccounts() {
@@ -134,10 +169,20 @@ function App() {
     }
   }
 
+  async function loadBudgets() {
+    try {
+      const savedBudgets = await invoke<Budget[]>("list_budgets");
+      setBudgets(savedBudgets);
+    } catch (err) {
+      setError(String(err));
+    }
+  }
+
   useEffect(() => {
     loadAccounts();
     loadCategories();
     loadTransactions();
+    loadBudgets();
   }, []);
 
   useEffect(() => {
@@ -158,6 +203,15 @@ function App() {
       setTransactionCategoryId(matchingCategories[0].id);
     }
   }, [matchingCategories, transactionCategoryId]);
+
+  useEffect(() => {
+    if (!budgetForm.categoryId && expenseCategories.length > 0) {
+      setBudgetForm((current) => ({
+        ...current,
+        categoryId: expenseCategories[0].id,
+      }));
+    }
+  }, [budgetForm.categoryId, expenseCategories]);
 
   async function createAccount(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -232,6 +286,7 @@ function App() {
       setTransactionDescription("");
       await loadTransactions();
       await loadAccounts();
+      await loadBudgets();
     } catch (err) {
       setError(String(err));
     } finally {
@@ -350,6 +405,7 @@ function App() {
       });
       cancelEditingCategory();
       await loadCategories();
+      await loadBudgets();
     } catch (err) {
       setError(String(err));
     } finally {
@@ -373,6 +429,7 @@ function App() {
       }
       await loadCategories();
       await loadTransactions();
+      await loadBudgets();
     } catch (err) {
       setError(String(err));
     } finally {
@@ -411,6 +468,7 @@ function App() {
       cancelEditingTransaction();
       await loadTransactions();
       await loadAccounts();
+      await loadBudgets();
     } catch (err) {
       setError(String(err));
     } finally {
@@ -431,6 +489,7 @@ function App() {
       }
       await loadTransactions();
       await loadAccounts();
+      await loadBudgets();
     } catch (err) {
       setError(String(err));
     } finally {
@@ -469,6 +528,135 @@ function App() {
       await loadTransactions(emptyFilters);
     } finally {
       setIsFilteringTransactions(false);
+    }
+  }
+
+  function updateBudgetForm(changes: Partial<BudgetFormState>) {
+    setBudgetForm((current) => ({
+      ...current,
+      ...changes,
+    }));
+  }
+
+  function updateEditBudget(changes: Partial<BudgetFormState>) {
+    setEditBudget((current) => {
+      if (!current) {
+        return current;
+      }
+
+      return {
+        ...current,
+        ...changes,
+      };
+    });
+  }
+
+  async function createBudget(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError("");
+
+    const amountMinor = normalAmountToMinor(budgetForm.amount);
+    if (amountMinor === null) {
+      setError("Enter a budget amount greater than 0.");
+      return;
+    }
+
+    setIsSavingBudget(true);
+
+    try {
+      await invoke<Budget>("create_budget", {
+        request: {
+          name: budgetForm.name,
+          categoryId: budgetForm.categoryId,
+          amountMinor,
+          month: Number(budgetForm.month),
+          year: Number(budgetForm.year),
+        },
+      });
+      setBudgetForm((current) => ({
+        ...defaultBudgetForm(),
+        categoryId: current.categoryId,
+      }));
+      await loadBudgets();
+    } catch (err) {
+      setError(String(err));
+    } finally {
+      setIsSavingBudget(false);
+    }
+  }
+
+  function startEditingBudget(budget: Budget) {
+    setError("");
+    setEditingBudgetId(budget.id);
+    setEditBudget({
+      name: budget.name,
+      categoryId: budget.categoryId,
+      amount: minorToNormalAmount(budget.amountMinor),
+      month: String(budget.month),
+      year: String(budget.year),
+    });
+  }
+
+  function cancelEditingBudget() {
+    setEditingBudgetId("");
+    setEditBudget(null);
+  }
+
+  async function updateBudget(
+    event: FormEvent<HTMLFormElement>,
+    budget: Budget,
+  ) {
+    event.preventDefault();
+    setError("");
+
+    if (!editBudget) {
+      return;
+    }
+
+    const amountMinor = normalAmountToMinor(editBudget.amount);
+    if (amountMinor === null) {
+      setError("Enter a budget amount greater than 0.");
+      return;
+    }
+
+    setIsUpdatingBudget(true);
+
+    try {
+      await invoke<Budget>("update_budget", {
+        request: {
+          id: budget.id,
+          name: editBudget.name,
+          categoryId: editBudget.categoryId,
+          amountMinor,
+          month: Number(editBudget.month),
+          year: Number(editBudget.year),
+        },
+      });
+      cancelEditingBudget();
+      await loadBudgets();
+    } catch (err) {
+      setError(String(err));
+    } finally {
+      setIsUpdatingBudget(false);
+    }
+  }
+
+  async function archiveBudget(id: string) {
+    setError("");
+    setArchivingBudgetId(id);
+
+    try {
+      await invoke("archive_budget", {
+        request: { id },
+      });
+      if (editingBudgetId === id) {
+        cancelEditingBudget();
+      }
+      await loadBudgets();
+    } catch (err) {
+      setError(String(err));
+    } finally {
+      setArchivingBudgetId("");
     }
   }
 
@@ -746,6 +934,174 @@ function App() {
         </section>
 
         <section className="list-section">
+          <h2>Budgets</h2>
+          <form className="simple-form" onSubmit={createBudget}>
+            <div className="form-grid">
+              <input
+                value={budgetForm.name}
+                onChange={(event) =>
+                  updateBudgetForm({ name: event.target.value })
+                }
+                placeholder="Budget name"
+              />
+              <select
+                value={budgetForm.categoryId}
+                onChange={(event) =>
+                  updateBudgetForm({ categoryId: event.target.value })
+                }
+              >
+                <option value="">Select expense category</option>
+                {expenseCategories.map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {category.name}
+                  </option>
+                ))}
+              </select>
+              <input
+                value={budgetForm.amount}
+                onChange={(event) =>
+                  updateBudgetForm({ amount: event.target.value })
+                }
+                inputMode="decimal"
+                placeholder="Amount"
+              />
+              <select
+                value={budgetForm.month}
+                onChange={(event) =>
+                  updateBudgetForm({ month: event.target.value })
+                }
+              >
+                {monthOptions.map((month) => (
+                  <option key={month.value} value={month.value}>
+                    {month.label}
+                  </option>
+                ))}
+              </select>
+              <input
+                value={budgetForm.year}
+                onChange={(event) =>
+                  updateBudgetForm({ year: event.target.value })
+                }
+                inputMode="numeric"
+                placeholder="Year"
+              />
+              <button
+                type="submit"
+                disabled={isSavingBudget || expenseCategories.length === 0}
+              >
+                {isSavingBudget ? "Creating..." : "Create budget"}
+              </button>
+            </div>
+          </form>
+
+          {budgets.length === 0 ? (
+            <p className="empty">No budgets yet.</p>
+          ) : (
+            <ul className="simple-list">
+              {budgets.map((budget) => (
+                <li key={budget.id}>
+                  {editingBudgetId === budget.id && editBudget ? (
+                    <form
+                      className="edit-form"
+                      onSubmit={(event) => updateBudget(event, budget)}
+                    >
+                      <input
+                        value={editBudget.name}
+                        onChange={(event) =>
+                          updateEditBudget({ name: event.target.value })
+                        }
+                        placeholder="Budget name"
+                      />
+                      <select
+                        value={editBudget.categoryId}
+                        onChange={(event) =>
+                          updateEditBudget({ categoryId: event.target.value })
+                        }
+                      >
+                        <option value="">Select expense category</option>
+                        {expenseCategories.map((category) => (
+                          <option key={category.id} value={category.id}>
+                            {category.name}
+                          </option>
+                        ))}
+                      </select>
+                      <input
+                        value={editBudget.amount}
+                        onChange={(event) =>
+                          updateEditBudget({ amount: event.target.value })
+                        }
+                        inputMode="decimal"
+                        placeholder="Amount"
+                      />
+                      <select
+                        value={editBudget.month}
+                        onChange={(event) =>
+                          updateEditBudget({ month: event.target.value })
+                        }
+                      >
+                        {monthOptions.map((month) => (
+                          <option key={month.value} value={month.value}>
+                            {month.label}
+                          </option>
+                        ))}
+                      </select>
+                      <input
+                        value={editBudget.year}
+                        onChange={(event) =>
+                          updateEditBudget({ year: event.target.value })
+                        }
+                        inputMode="numeric"
+                        placeholder="Year"
+                      />
+                      <div className="button-row">
+                        <button type="submit" disabled={isUpdatingBudget}>
+                          {isUpdatingBudget ? "Saving..." : "Save"}
+                        </button>
+                        <button type="button" onClick={cancelEditingBudget}>
+                          Cancel
+                        </button>
+                      </div>
+                    </form>
+                  ) : (
+                    <>
+                      <div>
+                        <span>
+                          {budget.name} - {budget.categoryName}
+                        </span>
+                        <small>
+                          {monthName(budget.month)} {budget.year} - Budget{" "}
+                          {formatMinor(budget.amountMinor)} - Spent{" "}
+                          {formatMinor(budget.spentMinor)} - Remaining{" "}
+                          {formatMinor(budget.remainingMinor)} -{" "}
+                          {budget.progressPercent}%
+                        </small>
+                      </div>
+                      <div className="button-row">
+                        <button
+                          type="button"
+                          onClick={() => startEditingBudget(budget)}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => archiveBudget(budget.id)}
+                          disabled={archivingBudgetId === budget.id}
+                        >
+                          {archivingBudgetId === budget.id
+                            ? "Archiving..."
+                            : "Archive"}
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
+        <section className="list-section">
           <h2>Transactions</h2>
           <form className="simple-form" onSubmit={applyTransactionFilters}>
             <div className="form-grid">
@@ -949,6 +1305,40 @@ function App() {
 
 function todayInputValue() {
   return new Date().toISOString().slice(0, 10);
+}
+
+const monthOptions = [
+  { value: "1", label: "January" },
+  { value: "2", label: "February" },
+  { value: "3", label: "March" },
+  { value: "4", label: "April" },
+  { value: "5", label: "May" },
+  { value: "6", label: "June" },
+  { value: "7", label: "July" },
+  { value: "8", label: "August" },
+  { value: "9", label: "September" },
+  { value: "10", label: "October" },
+  { value: "11", label: "November" },
+  { value: "12", label: "December" },
+];
+
+function defaultBudgetForm(): BudgetFormState {
+  const today = new Date();
+
+  return {
+    name: "",
+    categoryId: "",
+    amount: "",
+    month: String(today.getMonth() + 1),
+    year: String(today.getFullYear()),
+  };
+}
+
+function monthName(month: number) {
+  return (
+    monthOptions.find((monthOption) => Number(monthOption.value) === month)
+      ?.label ?? String(month)
+  );
 }
 
 function emptyTransactionFilters(): TransactionFilterState {
