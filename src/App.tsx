@@ -54,6 +54,22 @@ type SavingsGoal = {
   deadlineDate: string | null;
 };
 
+type RecurringBill = {
+  id: string;
+  name: string;
+  accountId: string;
+  accountName: string;
+  categoryId: string;
+  categoryName: string;
+  amountMinor: number;
+  frequency: RecurringFrequency;
+  nextDueDate: string;
+  lastPaidDate: string | null;
+  description: string | null;
+};
+
+type RecurringFrequency = "daily" | "weekly" | "monthly" | "yearly";
+
 type TransactionFormState = {
   accountId: string;
   categoryId: string;
@@ -92,6 +108,16 @@ type SavingsGoalContributionState = {
   amount: string;
 };
 
+type RecurringBillFormState = {
+  name: string;
+  accountId: string;
+  categoryId: string;
+  amount: string;
+  frequency: RecurringFrequency;
+  nextDueDate: string;
+  description: string;
+};
+
 function App() {
   const [accountName, setAccountName] = useState("");
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -120,6 +146,9 @@ function App() {
   const [savingsGoalContributions, setSavingsGoalContributions] = useState<
     Record<string, SavingsGoalContributionState>
   >({});
+  const [recurringBills, setRecurringBills] = useState<RecurringBill[]>([]);
+  const [recurringBillForm, setRecurringBillForm] =
+    useState<RecurringBillFormState>(defaultRecurringBillForm);
   const [editingTransactionId, setEditingTransactionId] = useState("");
   const [editTransaction, setEditTransaction] =
     useState<TransactionFormState | null>(null);
@@ -128,6 +157,9 @@ function App() {
   const [editingSavingsGoalId, setEditingSavingsGoalId] = useState("");
   const [editSavingsGoal, setEditSavingsGoal] =
     useState<SavingsGoalFormState | null>(null);
+  const [editingRecurringBillId, setEditingRecurringBillId] = useState("");
+  const [editRecurringBill, setEditRecurringBill] =
+    useState<RecurringBillFormState | null>(null);
   const [editingAccountId, setEditingAccountId] = useState("");
   const [editAccountName, setEditAccountName] = useState("");
   const [editingCategoryId, setEditingCategoryId] = useState("");
@@ -139,17 +171,21 @@ function App() {
   const [isSavingCategory, setIsSavingCategory] = useState(false);
   const [isSavingBudget, setIsSavingBudget] = useState(false);
   const [isSavingSavingsGoal, setIsSavingSavingsGoal] = useState(false);
+  const [isSavingRecurringBill, setIsSavingRecurringBill] = useState(false);
   const [isUpdatingAccount, setIsUpdatingAccount] = useState(false);
   const [isUpdatingCategory, setIsUpdatingCategory] = useState(false);
   const [isUpdatingBudget, setIsUpdatingBudget] = useState(false);
   const [isUpdatingSavingsGoal, setIsUpdatingSavingsGoal] = useState(false);
+  const [isUpdatingRecurringBill, setIsUpdatingRecurringBill] = useState(false);
   const [isSavingTransaction, setIsSavingTransaction] = useState(false);
   const [isUpdatingTransaction, setIsUpdatingTransaction] = useState(false);
   const [archivingAccountId, setArchivingAccountId] = useState("");
   const [archivingCategoryId, setArchivingCategoryId] = useState("");
   const [archivingBudgetId, setArchivingBudgetId] = useState("");
   const [archivingSavingsGoalId, setArchivingSavingsGoalId] = useState("");
+  const [archivingRecurringBillId, setArchivingRecurringBillId] = useState("");
   const [contributingSavingsGoalId, setContributingSavingsGoalId] = useState("");
+  const [payingRecurringBillId, setPayingRecurringBillId] = useState("");
   const [deletingTransactionId, setDeletingTransactionId] = useState("");
   const [isFilteringTransactions, setIsFilteringTransactions] = useState(false);
 
@@ -222,12 +258,22 @@ function App() {
     }
   }
 
+  async function loadRecurringBills() {
+    try {
+      const savedBills = await invoke<RecurringBill[]>("list_recurring_bills");
+      setRecurringBills(savedBills);
+    } catch (err) {
+      setError(String(err));
+    }
+  }
+
   useEffect(() => {
     loadAccounts();
     loadCategories();
     loadTransactions();
     loadBudgets();
     loadSavingsGoals();
+    loadRecurringBills();
   }, []);
 
   useEffect(() => {
@@ -257,6 +303,24 @@ function App() {
       }));
     }
   }, [budgetForm.categoryId, expenseCategories]);
+
+  useEffect(() => {
+    if (!recurringBillForm.accountId && accounts.length > 0) {
+      setRecurringBillForm((current) => ({
+        ...current,
+        accountId: accounts[0].id,
+      }));
+    }
+  }, [accounts, recurringBillForm.accountId]);
+
+  useEffect(() => {
+    if (!recurringBillForm.categoryId && expenseCategories.length > 0) {
+      setRecurringBillForm((current) => ({
+        ...current,
+        categoryId: expenseCategories[0].id,
+      }));
+    }
+  }, [expenseCategories, recurringBillForm.categoryId]);
 
   async function createAccount(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -333,6 +397,7 @@ function App() {
       await loadAccounts();
       await loadBudgets();
       await loadSavingsGoals();
+      await loadRecurringBills();
     } catch (err) {
       setError(String(err));
     } finally {
@@ -516,6 +581,7 @@ function App() {
       await loadAccounts();
       await loadBudgets();
       await loadSavingsGoals();
+      await loadRecurringBills();
     } catch (err) {
       setError(String(err));
     } finally {
@@ -538,6 +604,7 @@ function App() {
       await loadAccounts();
       await loadBudgets();
       await loadSavingsGoals();
+      await loadRecurringBills();
     } catch (err) {
       setError(String(err));
     } finally {
@@ -894,6 +961,164 @@ function App() {
       setError(String(err));
     } finally {
       setContributingSavingsGoalId("");
+    }
+  }
+
+  function updateRecurringBillForm(changes: Partial<RecurringBillFormState>) {
+    setRecurringBillForm((current) => ({
+      ...current,
+      ...changes,
+    }));
+  }
+
+  function updateEditRecurringBill(changes: Partial<RecurringBillFormState>) {
+    setEditRecurringBill((current) => {
+      if (!current) {
+        return current;
+      }
+
+      return {
+        ...current,
+        ...changes,
+      };
+    });
+  }
+
+  async function createRecurringBill(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError("");
+
+    const amountMinor = normalAmountToMinor(recurringBillForm.amount);
+    if (amountMinor === null) {
+      setError("Enter a recurring bill amount greater than 0.");
+      return;
+    }
+
+    setIsSavingRecurringBill(true);
+
+    try {
+      await invoke<RecurringBill>("create_recurring_bill", {
+        request: {
+          name: recurringBillForm.name,
+          accountId: recurringBillForm.accountId,
+          categoryId: recurringBillForm.categoryId,
+          amountMinor,
+          frequency: recurringBillForm.frequency,
+          nextDueDate: recurringBillForm.nextDueDate,
+          description: recurringBillForm.description,
+        },
+      });
+      setRecurringBillForm((current) => ({
+        ...defaultRecurringBillForm(),
+        accountId: current.accountId,
+        categoryId: current.categoryId,
+      }));
+      await loadRecurringBills();
+    } catch (err) {
+      setError(String(err));
+    } finally {
+      setIsSavingRecurringBill(false);
+    }
+  }
+
+  function startEditingRecurringBill(bill: RecurringBill) {
+    setError("");
+    setEditingRecurringBillId(bill.id);
+    setEditRecurringBill({
+      name: bill.name,
+      accountId: bill.accountId,
+      categoryId: bill.categoryId,
+      amount: minorToNormalAmount(bill.amountMinor),
+      frequency: bill.frequency,
+      nextDueDate: bill.nextDueDate,
+      description: bill.description ?? "",
+    });
+  }
+
+  function cancelEditingRecurringBill() {
+    setEditingRecurringBillId("");
+    setEditRecurringBill(null);
+  }
+
+  async function updateRecurringBill(
+    event: FormEvent<HTMLFormElement>,
+    bill: RecurringBill,
+  ) {
+    event.preventDefault();
+    setError("");
+
+    if (!editRecurringBill) {
+      return;
+    }
+
+    const amountMinor = normalAmountToMinor(editRecurringBill.amount);
+    if (amountMinor === null) {
+      setError("Enter a recurring bill amount greater than 0.");
+      return;
+    }
+
+    setIsUpdatingRecurringBill(true);
+
+    try {
+      await invoke<RecurringBill>("update_recurring_bill", {
+        request: {
+          id: bill.id,
+          name: editRecurringBill.name,
+          accountId: editRecurringBill.accountId,
+          categoryId: editRecurringBill.categoryId,
+          amountMinor,
+          frequency: editRecurringBill.frequency,
+          nextDueDate: editRecurringBill.nextDueDate,
+          description: editRecurringBill.description,
+        },
+      });
+      cancelEditingRecurringBill();
+      await loadRecurringBills();
+    } catch (err) {
+      setError(String(err));
+    } finally {
+      setIsUpdatingRecurringBill(false);
+    }
+  }
+
+  async function archiveRecurringBill(id: string) {
+    setError("");
+    setArchivingRecurringBillId(id);
+
+    try {
+      await invoke("archive_recurring_bill", {
+        request: { id },
+      });
+      if (editingRecurringBillId === id) {
+        cancelEditingRecurringBill();
+      }
+      await loadRecurringBills();
+    } catch (err) {
+      setError(String(err));
+    } finally {
+      setArchivingRecurringBillId("");
+    }
+  }
+
+  async function markRecurringBillPaid(id: string) {
+    setError("");
+    setPayingRecurringBillId(id);
+
+    try {
+      await invoke<RecurringBill>("mark_recurring_bill_paid", {
+        request: {
+          id,
+          paidDate: todayInputValue(),
+        },
+      });
+      await loadRecurringBills();
+      await loadTransactions();
+      await loadAccounts();
+      await loadBudgets();
+    } catch (err) {
+      setError(String(err));
+    } finally {
+      setPayingRecurringBillId("");
     }
   }
 
@@ -1526,6 +1751,236 @@ function App() {
         </section>
 
         <section className="list-section">
+          <h2>Recurring Bills</h2>
+          <form className="simple-form" onSubmit={createRecurringBill}>
+            <div className="form-grid">
+              <input
+                value={recurringBillForm.name}
+                onChange={(event) =>
+                  updateRecurringBillForm({ name: event.target.value })
+                }
+                placeholder="Bill name"
+              />
+              <select
+                value={recurringBillForm.accountId}
+                onChange={(event) =>
+                  updateRecurringBillForm({ accountId: event.target.value })
+                }
+              >
+                <option value="">Select account</option>
+                {accounts.map((account) => (
+                  <option key={account.id} value={account.id}>
+                    {account.name}
+                  </option>
+                ))}
+              </select>
+              <select
+                value={recurringBillForm.categoryId}
+                onChange={(event) =>
+                  updateRecurringBillForm({ categoryId: event.target.value })
+                }
+              >
+                <option value="">Select expense category</option>
+                {expenseCategories.map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {category.name}
+                  </option>
+                ))}
+              </select>
+              <input
+                value={recurringBillForm.amount}
+                onChange={(event) =>
+                  updateRecurringBillForm({ amount: event.target.value })
+                }
+                inputMode="decimal"
+                placeholder="Amount"
+              />
+              <select
+                value={recurringBillForm.frequency}
+                onChange={(event) =>
+                  updateRecurringBillForm({
+                    frequency: event.target.value as RecurringFrequency,
+                  })
+                }
+              >
+                {recurringFrequencyOptions.map((frequency) => (
+                  <option key={frequency} value={frequency}>
+                    {frequency}
+                  </option>
+                ))}
+              </select>
+              <input
+                type="date"
+                value={recurringBillForm.nextDueDate}
+                onChange={(event) =>
+                  updateRecurringBillForm({ nextDueDate: event.target.value })
+                }
+              />
+              <input
+                value={recurringBillForm.description}
+                onChange={(event) =>
+                  updateRecurringBillForm({ description: event.target.value })
+                }
+                placeholder="Description"
+              />
+              <button
+                type="submit"
+                disabled={
+                  isSavingRecurringBill ||
+                  accounts.length === 0 ||
+                  expenseCategories.length === 0
+                }
+              >
+                {isSavingRecurringBill ? "Creating..." : "Create bill"}
+              </button>
+            </div>
+          </form>
+
+          {recurringBills.length === 0 ? (
+            <p className="empty">No recurring bills yet.</p>
+          ) : (
+            <ul className="simple-list">
+              {recurringBills.map((bill) => (
+                <li key={bill.id}>
+                  {editingRecurringBillId === bill.id && editRecurringBill ? (
+                    <form
+                      className="edit-form"
+                      onSubmit={(event) => updateRecurringBill(event, bill)}
+                    >
+                      <input
+                        value={editRecurringBill.name}
+                        onChange={(event) =>
+                          updateEditRecurringBill({ name: event.target.value })
+                        }
+                        placeholder="Bill name"
+                      />
+                      <select
+                        value={editRecurringBill.accountId}
+                        onChange={(event) =>
+                          updateEditRecurringBill({
+                            accountId: event.target.value,
+                          })
+                        }
+                      >
+                        <option value="">Select account</option>
+                        {accounts.map((account) => (
+                          <option key={account.id} value={account.id}>
+                            {account.name}
+                          </option>
+                        ))}
+                      </select>
+                      <select
+                        value={editRecurringBill.categoryId}
+                        onChange={(event) =>
+                          updateEditRecurringBill({
+                            categoryId: event.target.value,
+                          })
+                        }
+                      >
+                        <option value="">Select expense category</option>
+                        {expenseCategories.map((category) => (
+                          <option key={category.id} value={category.id}>
+                            {category.name}
+                          </option>
+                        ))}
+                      </select>
+                      <input
+                        value={editRecurringBill.amount}
+                        onChange={(event) =>
+                          updateEditRecurringBill({ amount: event.target.value })
+                        }
+                        inputMode="decimal"
+                        placeholder="Amount"
+                      />
+                      <select
+                        value={editRecurringBill.frequency}
+                        onChange={(event) =>
+                          updateEditRecurringBill({
+                            frequency: event.target.value as RecurringFrequency,
+                          })
+                        }
+                      >
+                        {recurringFrequencyOptions.map((frequency) => (
+                          <option key={frequency} value={frequency}>
+                            {frequency}
+                          </option>
+                        ))}
+                      </select>
+                      <input
+                        type="date"
+                        value={editRecurringBill.nextDueDate}
+                        onChange={(event) =>
+                          updateEditRecurringBill({
+                            nextDueDate: event.target.value,
+                          })
+                        }
+                      />
+                      <input
+                        value={editRecurringBill.description}
+                        onChange={(event) =>
+                          updateEditRecurringBill({
+                            description: event.target.value,
+                          })
+                        }
+                        placeholder="Description"
+                      />
+                      <div className="button-row">
+                        <button type="submit" disabled={isUpdatingRecurringBill}>
+                          {isUpdatingRecurringBill ? "Saving..." : "Save"}
+                        </button>
+                        <button type="button" onClick={cancelEditingRecurringBill}>
+                          Cancel
+                        </button>
+                      </div>
+                    </form>
+                  ) : (
+                    <>
+                      <div>
+                        <span>
+                          {bill.name} - {formatMinor(bill.amountMinor)}
+                        </span>
+                        <small>
+                          {bill.frequency} - Next due {bill.nextDueDate} - Last
+                          paid {bill.lastPaidDate ?? "Never"} -{" "}
+                          {bill.categoryName} - {bill.accountName}
+                          {bill.description ? ` - ${bill.description}` : ""}
+                        </small>
+                      </div>
+                      <div className="button-row">
+                        <button
+                          type="button"
+                          onClick={() => markRecurringBillPaid(bill.id)}
+                          disabled={payingRecurringBillId === bill.id}
+                        >
+                          {payingRecurringBillId === bill.id
+                            ? "Paying..."
+                            : "Mark paid"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => startEditingRecurringBill(bill)}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => archiveRecurringBill(bill.id)}
+                          disabled={archivingRecurringBillId === bill.id}
+                        >
+                          {archivingRecurringBillId === bill.id
+                            ? "Archiving..."
+                            : "Archive"}
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
+        <section className="list-section">
           <h2>Transactions</h2>
           <form className="simple-form" onSubmit={applyTransactionFilters}>
             <div className="form-grid">
@@ -1746,6 +2201,13 @@ const monthOptions = [
   { value: "12", label: "December" },
 ];
 
+const recurringFrequencyOptions: RecurringFrequency[] = [
+  "daily",
+  "weekly",
+  "monthly",
+  "yearly",
+];
+
 function defaultBudgetForm(): BudgetFormState {
   const today = new Date();
 
@@ -1755,6 +2217,18 @@ function defaultBudgetForm(): BudgetFormState {
     amount: "",
     month: String(today.getMonth() + 1),
     year: String(today.getFullYear()),
+  };
+}
+
+function defaultRecurringBillForm(): RecurringBillFormState {
+  return {
+    name: "",
+    accountId: "",
+    categoryId: "",
+    amount: "",
+    frequency: "monthly",
+    nextDueDate: todayInputValue(),
+    description: "",
   };
 }
 

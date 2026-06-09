@@ -134,11 +134,18 @@ Implemented:
 * Contribute to savings goal
 * Calculated savings goal progress
 * Savings goal contributions create expense transactions
-* Basic React UI for manually testing accounts, categories, transactions, filters, budgets, and savings goals
+* Recurring bills module
+* Create recurring bill
+* List non-archived recurring bills
+* Update recurring bill
+* Archive recurring bill
+* Mark recurring bill as paid
+* Automatic next due date calculation
+* Recurring bill payments create expense transactions
+* Basic React UI for manually testing accounts, categories, transactions, filters, budgets, savings goals, and recurring bills
 
 Not yet implemented:
 
-* Recurring bills
 * Reports
 * Charts
 * Notifications
@@ -197,6 +204,7 @@ mod.rs
 accounts.rs
 budgets.rs
 categories.rs
+recurring_bills.rs
 savings_goals.rs
 transactions.rs
 
@@ -221,6 +229,12 @@ model.rs
 dto.rs
 service.rs
 
+recurring_bills/
+mod.rs
+model.rs
+dto.rs
+service.rs
+
 savings_goals/
 mod.rs
 model.rs
@@ -238,6 +252,7 @@ mod.rs
 account_repository.rs
 budget_repository.rs
 category_repository.rs
+recurring_bill_repository.rs
 savings_goal_repository.rs
 transaction_repository.rs
 
@@ -257,6 +272,7 @@ src-tauri/migrations/
 0003_create_transactions.sql
 0004_create_budgets.sql
 0005_create_savings_goals.sql
+0006_create_recurring_bills.sql
 
 ---
 
@@ -281,6 +297,11 @@ Currently registered commands:
 * `list_budgets`
 * `update_budget`
 * `archive_budget`
+* `create_recurring_bill`
+* `list_recurring_bills`
+* `update_recurring_bill`
+* `archive_recurring_bill`
+* `mark_recurring_bill_paid`
 * `create_savings_goal`
 * `list_savings_goals`
 * `update_savings_goal`
@@ -488,6 +509,59 @@ Current limitations:
 
 ---
 
+## Recurring Bills Module
+
+Current recurring bill fields:
+
+* id
+* name
+* account_id
+* category_id
+* amount_minor
+* frequency
+* next_due_date
+* last_paid_date
+* description
+* is_archived
+* created_at
+* updated_at
+
+Display fields returned by list commands:
+
+* account_name
+* category_name
+
+Rules:
+
+* Name is required after trimming.
+* Account is required, must exist, and must not be archived.
+* Category is required, must exist, must not be archived, and must be an expense category.
+* Amount must be greater than 0.
+* Frequency must be `daily`, `weekly`, `monthly`, or `yearly`.
+* Next due date is required and must use `YYYY-MM-DD` format.
+* Blank descriptions are stored as NULL.
+* New recurring bills are created with `is_archived = false`.
+* Archived recurring bills are hidden from normal recurring bill listings.
+* Recurring bills are archived rather than physically deleted.
+* Marking a recurring bill as paid requires an existing, non-archived recurring bill.
+* Marking paid creates a real expense transaction using the bill account, category, amount, and description.
+* If a bill has no description, payment transaction descriptions default to `Payment for <bill name>`.
+* Marking paid updates `last_paid_date`.
+* Marking paid advances `next_due_date` from the paid date by the bill frequency.
+* Daily bills advance by 1 day.
+* Weekly bills advance by 7 days.
+* Monthly bills advance by 1 calendar month.
+* Yearly bills advance by 12 calendar months.
+* Payment transaction creation and recurring bill updates run in one database transaction.
+* If any payment step fails, the whole payment rolls back.
+
+Current limitations:
+
+* There is no recurring bill restore or physical delete flow.
+* There are no notifications, reminder system, calendar integration, reports, or charts.
+
+---
+
 ## Money Handling Rules
 
 Never store money using floating point numbers.
@@ -570,9 +644,12 @@ Current frontend scope:
 * Savings goal edit and archive controls
 * Savings goal contribution controls
 * Savings goal list with target, current, remaining, and progress percentage
+* Recurring bill creation form
+* Recurring bill edit, archive, and mark-paid controls
+* Recurring bill list with amount, frequency, due dates, account, category, and description
 * Error display
 * Basic saving state for create, update, archive, delete, and filter actions
-* Empty states for accounts, categories, budgets, savings goals, and transactions
+* Empty states for accounts, categories, budgets, savings goals, recurring bills, and transactions
 * Responsive stacked form rows on narrow screens
 
 Keep UI simple.
@@ -663,6 +740,9 @@ Expected behavior:
 * Savings goals can be created, edited, archived, and listed.
 * Savings goal contributions create expense transactions.
 * Savings goal progress and remaining values are calculated from stored savings goal amounts.
+* Recurring bills can be created, edited, archived, and listed.
+* Recurring bills can be marked as paid.
+* Recurring bill payments create expense transactions and advance the next due date.
 * Data persists after restart.
 
 ---
@@ -680,6 +760,7 @@ Completed foundation:
 * Category management
 * Budgets
 * Savings goals
+* Recurring bills
 * Calculated account balances
 * Calculated budget usage
 * Calculated savings goal progress
@@ -687,10 +768,11 @@ Completed foundation:
 
 Future work requires an explicit request before implementation:
 
-* Recurring bills
 * Reports
 * Charts
 * Notifications
+* Reminder system
+* Calendar integration
 * Import/export
 * Backups
 * Encryption
@@ -718,9 +800,13 @@ A user can:
 11. Contribute to a savings goal and see a generated expense transaction.
 12. See the selected account balance decrease after a savings goal contribution.
 13. See savings goal remaining and progress values.
-14. Restart the application.
-15. See previously created non-archived accounts, categories, transactions, budgets, and savings goals.
+14. Create, edit, archive, and view recurring bills.
+15. Mark recurring bills as paid and see generated expense transactions.
+16. See the selected account balance decrease after a recurring bill payment.
+17. See recurring bill next due dates advance for daily, weekly, monthly, and yearly frequencies.
+18. Restart the application.
+19. See previously created non-archived accounts, categories, transactions, budgets, savings goals, and recurring bills.
 
 without requiring internet access.
 
-After this foundation is stable, development can move to recurring bills, reports, import/export, backups, encryption, and other explicitly requested roadmap items.
+After this foundation is stable, development can move to reports, import/export, backups, encryption, reminders, calendar integration, and other explicitly requested roadmap items.
