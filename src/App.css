@@ -140,11 +140,37 @@ button:active {
 .simple-list li {
   display: flex;
   justify-content: space-between;
+  align-items: center;
   gap: 16px;
   padding: 12px;
   background: #ffffff;
   border: 1px solid #dddddd;
   border-radius: 8px;
+}
+
+.transaction-item > div:first-child {
+  display: grid;
+  gap: 4px;
+}
+
+.button-row {
+  display: flex;
+  gap: 8px;
+}
+
+.button-row button {
+  padding: 0.45em 0.8em;
+}
+
+.edit-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  width: 100%;
+}
+
+.edit-form .button-row {
+  grid-column: 1 / -1;
 }
 
 .accounts-list small,
@@ -187,8 +213,14 @@ button:active {
 
 @media (max-width: 520px) {
   .form-row,
-  .form-grid {
+  .form-grid,
+  .edit-form {
     grid-template-columns: 1fr;
+    flex-direction: column;
+  }
+
+  .transaction-item {
+    align-items: stretch;
     flex-direction: column;
   }
 }

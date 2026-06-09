@@ -83,4 +83,84 @@ impl TransactionRepository {
 
         Ok(transactions)
     }
+
+    pub async fn find_by_id(pool: &SqlitePool, id: &str) -> Result<Option<Transaction>, AppError> {
+        let transaction = sqlx::query_as::<_, Transaction>(
+            r#"
+            SELECT
+                id,
+                account_id,
+                category_id,
+                transaction_type,
+                amount_minor,
+                description,
+                transaction_date,
+                created_at,
+                updated_at
+            FROM transactions
+            WHERE id = ?
+            "#,
+        )
+        .bind(id)
+        .fetch_optional(pool)
+        .await?;
+
+        Ok(transaction)
+    }
+
+    pub async fn update(
+        pool: &SqlitePool,
+        id: String,
+        account_id: String,
+        category_id: String,
+        transaction_type: String,
+        amount_minor: i64,
+        description: Option<String>,
+        transaction_date: String,
+    ) -> Result<Transaction, AppError> {
+        let updated_at = Utc::now().to_rfc3339();
+
+        sqlx::query(
+            r#"
+            UPDATE transactions
+            SET
+                account_id = ?,
+                category_id = ?,
+                transaction_type = ?,
+                amount_minor = ?,
+                description = ?,
+                transaction_date = ?,
+                updated_at = ?
+            WHERE id = ?
+            "#,
+        )
+        .bind(account_id)
+        .bind(category_id)
+        .bind(transaction_type)
+        .bind(amount_minor)
+        .bind(description)
+        .bind(transaction_date)
+        .bind(updated_at)
+        .bind(&id)
+        .execute(pool)
+        .await?;
+
+        Self::find_by_id(pool, &id)
+            .await?
+            .ok_or_else(|| AppError::Validation("Transaction does not exist.".to_string()))
+    }
+
+    pub async fn delete(pool: &SqlitePool, id: &str) -> Result<u64, AppError> {
+        let result = sqlx::query(
+            r#"
+            DELETE FROM transactions
+            WHERE id = ?
+            "#,
+        )
+        .bind(id)
+        .execute(pool)
+        .await?;
+
+        Ok(result.rows_affected())
+    }
 }

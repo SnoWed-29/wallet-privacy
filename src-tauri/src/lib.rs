@@ -26,6 +26,8 @@ pub fn run() {
             commands::categories::create_category,
             commands::categories::list_categories,
             commands::transactions::create_transaction,
+            commands::transactions::update_transaction,
+            commands::transactions::delete_transaction,
             commands::transactions::list_transactions
         ])
         .run(tauri::generate_context!())

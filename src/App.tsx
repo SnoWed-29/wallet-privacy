@@ -31,6 +31,15 @@ type Transaction = {
   transactionDate: string;
 };
 
+type TransactionFormState = {
+  accountId: string;
+  categoryId: string;
+  transactionType: TransactionType;
+  amount: string;
+  description: string;
+  transactionDate: string;
+};
+
 function App() {
   const [accountName, setAccountName] = useState("");
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -45,10 +54,15 @@ function App() {
   const [transactionDescription, setTransactionDescription] = useState("");
   const [transactionDate, setTransactionDate] = useState(todayInputValue());
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [editingTransactionId, setEditingTransactionId] = useState("");
+  const [editTransaction, setEditTransaction] =
+    useState<TransactionFormState | null>(null);
   const [error, setError] = useState("");
   const [isSavingAccount, setIsSavingAccount] = useState(false);
   const [isSavingCategory, setIsSavingCategory] = useState(false);
   const [isSavingTransaction, setIsSavingTransaction] = useState(false);
+  const [isUpdatingTransaction, setIsUpdatingTransaction] = useState(false);
+  const [deletingTransactionId, setDeletingTransactionId] = useState("");
 
   const matchingCategories = useMemo(
     () =>
@@ -187,6 +201,99 @@ function App() {
     } finally {
       setIsSavingTransaction(false);
     }
+  }
+
+  function startEditingTransaction(transaction: Transaction) {
+    setError("");
+    setEditingTransactionId(transaction.id);
+    setEditTransaction({
+      accountId: transaction.accountId,
+      categoryId: transaction.categoryId,
+      transactionType: transaction.transactionType,
+      amount: minorToNormalAmount(transaction.amountMinor),
+      description: transaction.description ?? "",
+      transactionDate: transaction.transactionDate,
+    });
+  }
+
+  function cancelEditingTransaction() {
+    setEditingTransactionId("");
+    setEditTransaction(null);
+  }
+
+  async function updateTransaction(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError("");
+
+    if (!editTransaction) {
+      return;
+    }
+
+    const amountMinor = normalAmountToMinor(editTransaction.amount);
+    if (amountMinor === null) {
+      setError("Enter a transaction amount greater than 0.");
+      return;
+    }
+
+    setIsUpdatingTransaction(true);
+
+    try {
+      await invoke<Transaction>("update_transaction", {
+        request: {
+          id: editingTransactionId,
+          accountId: editTransaction.accountId,
+          categoryId: editTransaction.categoryId,
+          transactionType: editTransaction.transactionType,
+          amountMinor,
+          description: editTransaction.description,
+          transactionDate: editTransaction.transactionDate,
+        },
+      });
+      cancelEditingTransaction();
+      await loadTransactions();
+      await loadAccounts();
+    } catch (err) {
+      setError(String(err));
+    } finally {
+      setIsUpdatingTransaction(false);
+    }
+  }
+
+  async function deleteTransaction(id: string) {
+    setError("");
+    setDeletingTransactionId(id);
+
+    try {
+      await invoke("delete_transaction", {
+        request: { id },
+      });
+      if (editingTransactionId === id) {
+        cancelEditingTransaction();
+      }
+      await loadTransactions();
+      await loadAccounts();
+    } catch (err) {
+      setError(String(err));
+    } finally {
+      setDeletingTransactionId("");
+    }
+  }
+
+  function updateEditTransaction(changes: Partial<TransactionFormState>) {
+    setEditTransaction((current) => {
+      if (!current) {
+        return current;
+      }
+
+      return {
+        ...current,
+        ...changes,
+      };
+    });
+  }
+
+  function editCategoriesFor(type: TransactionType) {
+    return categories.filter((category) => category.categoryType === type);
   }
 
   function accountNameFor(id: string) {
@@ -353,16 +460,120 @@ function App() {
           ) : (
             <ul className="simple-list">
               {transactions.map((transaction) => (
-                <li key={transaction.id}>
-                  <span>
-                    {transaction.description || categoryNameFor(transaction.categoryId)}
-                  </span>
-                  <small>
-                    {transaction.transactionDate} -{" "}
-                    {accountNameFor(transaction.accountId)} -{" "}
-                    {transaction.transactionType === "income" ? "+" : "-"}
-                    {formatMinor(transaction.amountMinor)}
-                  </small>
+                <li className="transaction-item" key={transaction.id}>
+                  {editingTransactionId === transaction.id && editTransaction ? (
+                    <form className="edit-form" onSubmit={updateTransaction}>
+                      <select
+                        value={editTransaction.accountId}
+                        onChange={(event) =>
+                          updateEditTransaction({ accountId: event.target.value })
+                        }
+                      >
+                        <option value="">Select account</option>
+                        {accounts.map((account) => (
+                          <option key={account.id} value={account.id}>
+                            {account.name}
+                          </option>
+                        ))}
+                      </select>
+                      <select
+                        value={editTransaction.transactionType}
+                        onChange={(event) => {
+                          const nextType = event.target.value as TransactionType;
+                          const nextCategory =
+                            editCategoriesFor(nextType)[0]?.id ?? "";
+                          updateEditTransaction({
+                            transactionType: nextType,
+                            categoryId: nextCategory,
+                          });
+                        }}
+                      >
+                        <option value="expense">Expense</option>
+                        <option value="income">Income</option>
+                      </select>
+                      <select
+                        value={editTransaction.categoryId}
+                        onChange={(event) =>
+                          updateEditTransaction({ categoryId: event.target.value })
+                        }
+                      >
+                        <option value="">Select category</option>
+                        {editCategoriesFor(editTransaction.transactionType).map(
+                          (category) => (
+                            <option key={category.id} value={category.id}>
+                              {category.name}
+                            </option>
+                          ),
+                        )}
+                      </select>
+                      <input
+                        value={editTransaction.amount}
+                        onChange={(event) =>
+                          updateEditTransaction({ amount: event.target.value })
+                        }
+                        inputMode="decimal"
+                        placeholder="Amount"
+                      />
+                      <input
+                        value={editTransaction.description}
+                        onChange={(event) =>
+                          updateEditTransaction({
+                            description: event.target.value,
+                          })
+                        }
+                        placeholder="Description"
+                      />
+                      <input
+                        type="date"
+                        value={editTransaction.transactionDate}
+                        onChange={(event) =>
+                          updateEditTransaction({
+                            transactionDate: event.target.value,
+                          })
+                        }
+                      />
+                      <div className="button-row">
+                        <button type="submit" disabled={isUpdatingTransaction}>
+                          {isUpdatingTransaction ? "Saving..." : "Save"}
+                        </button>
+                        <button type="button" onClick={cancelEditingTransaction}>
+                          Cancel
+                        </button>
+                      </div>
+                    </form>
+                  ) : (
+                    <>
+                      <div>
+                        <span>
+                          {transaction.description ||
+                            categoryNameFor(transaction.categoryId)}
+                        </span>
+                        <small>
+                          {transaction.transactionDate} -{" "}
+                          {accountNameFor(transaction.accountId)} -{" "}
+                          {transaction.transactionType === "income" ? "+" : "-"}
+                          {formatMinor(transaction.amountMinor)}
+                        </small>
+                      </div>
+                      <div className="button-row">
+                        <button
+                          type="button"
+                          onClick={() => startEditingTransaction(transaction)}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => deleteTransaction(transaction.id)}
+                          disabled={deletingTransactionId === transaction.id}
+                        >
+                          {deletingTransactionId === transaction.id
+                            ? "Deleting..."
+                            : "Delete"}
+                        </button>
+                      </div>
+                    </>
+                  )}
                 </li>
               ))}
             </ul>
@@ -394,6 +605,10 @@ function normalAmountToMinor(value: string) {
 }
 
 function formatMinor(value: number) {
+  return (value / 100).toFixed(2);
+}
+
+function minorToNormalAmount(value: number) {
   return (value / 100).toFixed(2);
 }
 
