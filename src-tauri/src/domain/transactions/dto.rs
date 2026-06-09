@@ -28,3 +28,14 @@ pub struct UpdateTransactionRequest {
 pub struct DeleteTransactionRequest {
     pub id: String,
 }
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TransactionFilterRequest {
+    pub account_id: Option<String>,
+    pub category_id: Option<String>,
+    pub transaction_type: Option<String>,
+    pub start_date: Option<String>,
+    pub end_date: Option<String>,
+    pub search: Option<String>,
+}

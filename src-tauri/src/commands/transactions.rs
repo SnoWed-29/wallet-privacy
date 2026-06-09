@@ -1,7 +1,8 @@
 use tauri::State;
 
 use crate::domain::transactions::dto::{
-    CreateTransactionRequest, DeleteTransactionRequest, UpdateTransactionRequest,
+    CreateTransactionRequest, DeleteTransactionRequest, TransactionFilterRequest,
+    UpdateTransactionRequest,
 };
 use crate::domain::transactions::model::Transaction;
 use crate::domain::transactions::service::TransactionService;
@@ -35,4 +36,12 @@ pub async fn delete_transaction(
 #[tauri::command]
 pub async fn list_transactions(state: State<'_, AppState>) -> Result<Vec<Transaction>, AppError> {
     TransactionService::list(&state.db).await
+}
+
+#[tauri::command]
+pub async fn filter_transactions(
+    state: State<'_, AppState>,
+    request: TransactionFilterRequest,
+) -> Result<Vec<Transaction>, AppError> {
+    TransactionService::filter(&state.db, request).await
 }

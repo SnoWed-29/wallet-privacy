@@ -1,7 +1,8 @@
 use sqlx::SqlitePool;
 
 use crate::domain::transactions::dto::{
-    CreateTransactionRequest, DeleteTransactionRequest, UpdateTransactionRequest,
+    CreateTransactionRequest, DeleteTransactionRequest, TransactionFilterRequest,
+    UpdateTransactionRequest,
 };
 use crate::domain::transactions::model::Transaction;
 use crate::errors::app_error::AppError;
@@ -106,6 +107,64 @@ impl TransactionService {
 
     pub async fn list(pool: &SqlitePool) -> Result<Vec<Transaction>, AppError> {
         TransactionRepository::list(pool).await
+    }
+
+    pub async fn filter(
+        pool: &SqlitePool,
+        request: TransactionFilterRequest,
+    ) -> Result<Vec<Transaction>, AppError> {
+        let account_id = empty_string_to_none(request.account_id);
+        if let Some(account_id) = &account_id {
+            if AccountRepository::find_by_id(pool, account_id)
+                .await?
+                .is_none()
+            {
+                return Err(AppError::Validation("Account does not exist.".to_string()));
+            }
+        }
+
+        let category_id = empty_string_to_none(request.category_id);
+        if let Some(category_id) = &category_id {
+            if CategoryRepository::find_by_id(pool, category_id)
+                .await?
+                .is_none()
+            {
+                return Err(AppError::Validation("Category does not exist.".to_string()));
+            }
+        }
+
+        let transaction_type = empty_string_to_none(request.transaction_type)
+            .map(|transaction_type| transaction_type.to_lowercase());
+        if let Some(transaction_type) = &transaction_type {
+            if transaction_type != "income" && transaction_type != "expense" {
+                return Err(AppError::Validation(
+                    "Transaction type must be income or expense.".to_string(),
+                ));
+            }
+        }
+
+        let start_date = empty_string_to_none(request.start_date);
+        let end_date = empty_string_to_none(request.end_date);
+        if let (Some(start_date), Some(end_date)) = (&start_date, &end_date) {
+            if start_date > end_date {
+                return Err(AppError::Validation(
+                    "Start date cannot be after end date.".to_string(),
+                ));
+            }
+        }
+
+        let search = empty_string_to_none(request.search);
+
+        TransactionRepository::filter(
+            pool,
+            account_id,
+            category_id,
+            transaction_type,
+            start_date,
+            end_date,
+            search,
+        )
+        .await
     }
 }
 

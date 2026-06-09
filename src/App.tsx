@@ -40,6 +40,15 @@ type TransactionFormState = {
   transactionDate: string;
 };
 
+type TransactionFilterState = {
+  accountId: string;
+  categoryId: string;
+  transactionType: TransactionType | "";
+  startDate: string;
+  endDate: string;
+  search: string;
+};
+
 function App() {
   const [accountName, setAccountName] = useState("");
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -54,6 +63,10 @@ function App() {
   const [transactionDescription, setTransactionDescription] = useState("");
   const [transactionDate, setTransactionDate] = useState(todayInputValue());
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [transactionFilters, setTransactionFilters] =
+    useState<TransactionFilterState>(emptyTransactionFilters);
+  const [appliedTransactionFilters, setAppliedTransactionFilters] =
+    useState<TransactionFilterState>(emptyTransactionFilters);
   const [editingTransactionId, setEditingTransactionId] = useState("");
   const [editTransaction, setEditTransaction] =
     useState<TransactionFormState | null>(null);
@@ -73,6 +86,7 @@ function App() {
   const [archivingAccountId, setArchivingAccountId] = useState("");
   const [archivingCategoryId, setArchivingCategoryId] = useState("");
   const [deletingTransactionId, setDeletingTransactionId] = useState("");
+  const [isFilteringTransactions, setIsFilteringTransactions] = useState(false);
 
   const matchingCategories = useMemo(
     () =>
@@ -98,10 +112,22 @@ function App() {
     }
   }
 
-  async function loadTransactions() {
+  async function loadTransactions(
+    filters: TransactionFilterState = appliedTransactionFilters,
+  ) {
     try {
-      const savedTransactions =
-        await invoke<Transaction[]>("list_transactions");
+      const savedTransactions = hasActiveTransactionFilters(filters)
+        ? await invoke<Transaction[]>("filter_transactions", {
+            request: {
+              accountId: filters.accountId,
+              categoryId: filters.categoryId,
+              transactionType: filters.transactionType,
+              startDate: filters.startDate,
+              endDate: filters.endDate,
+              search: filters.search,
+            },
+          })
+        : await invoke<Transaction[]>("list_transactions");
       setTransactions(savedTransactions);
     } catch (err) {
       setError(String(err));
@@ -412,6 +438,40 @@ function App() {
     }
   }
 
+  function updateTransactionFilter(changes: Partial<TransactionFilterState>) {
+    setTransactionFilters((current) => ({
+      ...current,
+      ...changes,
+    }));
+  }
+
+  async function applyTransactionFilters(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError("");
+    setIsFilteringTransactions(true);
+
+    try {
+      setAppliedTransactionFilters(transactionFilters);
+      await loadTransactions(transactionFilters);
+    } finally {
+      setIsFilteringTransactions(false);
+    }
+  }
+
+  async function clearTransactionFilters() {
+    const emptyFilters = emptyTransactionFilters();
+    setError("");
+    setTransactionFilters(emptyFilters);
+    setAppliedTransactionFilters(emptyFilters);
+    setIsFilteringTransactions(true);
+
+    try {
+      await loadTransactions(emptyFilters);
+    } finally {
+      setIsFilteringTransactions(false);
+    }
+  }
+
   function updateEditTransaction(changes: Partial<TransactionFormState>) {
     setEditTransaction((current) => {
       if (!current) {
@@ -687,6 +747,77 @@ function App() {
 
         <section className="list-section">
           <h2>Transactions</h2>
+          <form className="simple-form" onSubmit={applyTransactionFilters}>
+            <div className="form-grid">
+              <select
+                value={transactionFilters.accountId}
+                onChange={(event) =>
+                  updateTransactionFilter({ accountId: event.target.value })
+                }
+              >
+                <option value="">All accounts</option>
+                {accounts.map((account) => (
+                  <option key={account.id} value={account.id}>
+                    {account.name}
+                  </option>
+                ))}
+              </select>
+              <select
+                value={transactionFilters.categoryId}
+                onChange={(event) =>
+                  updateTransactionFilter({ categoryId: event.target.value })
+                }
+              >
+                <option value="">All categories</option>
+                {categories.map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {category.name}
+                  </option>
+                ))}
+              </select>
+              <select
+                value={transactionFilters.transactionType}
+                onChange={(event) =>
+                  updateTransactionFilter({
+                    transactionType: event.target.value as TransactionType | "",
+                  })
+                }
+              >
+                <option value="">All types</option>
+                <option value="expense">Expense</option>
+                <option value="income">Income</option>
+              </select>
+              <input
+                type="date"
+                value={transactionFilters.startDate}
+                onChange={(event) =>
+                  updateTransactionFilter({ startDate: event.target.value })
+                }
+              />
+              <input
+                type="date"
+                value={transactionFilters.endDate}
+                onChange={(event) =>
+                  updateTransactionFilter({ endDate: event.target.value })
+                }
+              />
+              <input
+                value={transactionFilters.search}
+                onChange={(event) =>
+                  updateTransactionFilter({ search: event.target.value })
+                }
+                placeholder="Search"
+              />
+              <div className="button-row">
+                <button type="submit" disabled={isFilteringTransactions}>
+                  {isFilteringTransactions ? "Filtering..." : "Apply filters"}
+                </button>
+                <button type="button" onClick={clearTransactionFilters}>
+                  Clear filters
+                </button>
+              </div>
+            </div>
+          </form>
           {transactions.length === 0 ? (
             <p className="empty">No transactions yet.</p>
           ) : (
@@ -818,6 +949,21 @@ function App() {
 
 function todayInputValue() {
   return new Date().toISOString().slice(0, 10);
+}
+
+function emptyTransactionFilters(): TransactionFilterState {
+  return {
+    accountId: "",
+    categoryId: "",
+    transactionType: "",
+    startDate: "",
+    endDate: "",
+    search: "",
+  };
+}
+
+function hasActiveTransactionFilters(filters: TransactionFilterState) {
+  return Object.values(filters).some((value) => value.trim() !== "");
 }
 
 function normalAmountToMinor(value: string) {

@@ -1,5 +1,5 @@
 use chrono::Utc;
-use sqlx::SqlitePool;
+use sqlx::{QueryBuilder, Sqlite, SqlitePool};
 use uuid::Uuid;
 
 use crate::domain::transactions::model::Transaction;
@@ -80,6 +80,90 @@ impl TransactionRepository {
         )
         .fetch_all(pool)
         .await?;
+
+        Ok(transactions)
+    }
+
+    pub async fn filter(
+        pool: &SqlitePool,
+        account_id: Option<String>,
+        category_id: Option<String>,
+        transaction_type: Option<String>,
+        start_date: Option<String>,
+        end_date: Option<String>,
+        search: Option<String>,
+    ) -> Result<Vec<Transaction>, AppError> {
+        let mut query = QueryBuilder::<Sqlite>::new(
+            r#"
+            SELECT
+                transactions.id,
+                transactions.account_id,
+                transactions.category_id,
+                transactions.transaction_type,
+                transactions.amount_minor,
+                transactions.description,
+                transactions.transaction_date,
+                transactions.created_at,
+                transactions.updated_at
+            FROM transactions
+            INNER JOIN accounts ON accounts.id = transactions.account_id
+            INNER JOIN categories ON categories.id = transactions.category_id
+            WHERE 1 = 1
+            "#,
+        );
+
+        if let Some(account_id) = account_id {
+            query
+                .push(" AND transactions.account_id = ")
+                .push_bind(account_id);
+        }
+
+        if let Some(category_id) = category_id {
+            query
+                .push(" AND transactions.category_id = ")
+                .push_bind(category_id);
+        }
+
+        if let Some(transaction_type) = transaction_type {
+            query
+                .push(" AND transactions.transaction_type = ")
+                .push_bind(transaction_type);
+        }
+
+        if let Some(start_date) = start_date {
+            query
+                .push(" AND transactions.transaction_date >= ")
+                .push_bind(start_date);
+        }
+
+        if let Some(end_date) = end_date {
+            query
+                .push(" AND transactions.transaction_date <= ")
+                .push_bind(end_date);
+        }
+
+        if let Some(search) = search {
+            let search_pattern = format!("%{}%", search);
+            query.push(
+                r#"
+                AND (
+                    LOWER(COALESCE(transactions.description, '')) LIKE LOWER(
+                "#,
+            );
+            query.push_bind(search_pattern.clone());
+            query.push(") OR LOWER(accounts.name) LIKE LOWER(");
+            query.push_bind(search_pattern.clone());
+            query.push(") OR LOWER(categories.name) LIKE LOWER(");
+            query.push_bind(search_pattern);
+            query.push("))");
+        }
+
+        query.push(" ORDER BY transactions.transaction_date DESC, transactions.created_at DESC");
+
+        let transactions = query
+            .build_query_as::<Transaction>()
+            .fetch_all(pool)
+            .await?;
 
         Ok(transactions)
     }
