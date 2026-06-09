@@ -39,7 +39,9 @@ type Budget = {
   amountMinor: number;
   spentMinor: number;
   remainingMinor: number;
-  progressPercent: number;
+  progressPercentage: number;
+  isNearLimit: boolean;
+  isExceeded: boolean;
   month: number;
   year: number;
 };
@@ -105,7 +107,7 @@ type DashboardBudget = {
   amountMinor: number;
   spentMinor: number;
   remainingMinor: number;
-  progressPercent: number;
+  progressPercentage: number;
   isNearLimit: boolean;
   isExceeded: boolean;
 };
@@ -1315,7 +1317,8 @@ function App() {
                     <li key={`${budget.name}-${budget.categoryName}`}>
                       <span>{budget.name}</span>
                       <small>
-                        {budget.categoryName} - {budget.progressPercent}% -{" "}
+                        {budget.categoryName} -{" "}
+                        {formatPercentage(budget.progressPercentage)} -{" "}
                         {formatMinor(budget.spentMinor)} spent of{" "}
                         {formatMinor(budget.amountMinor)}
                         {budget.isExceeded
@@ -1610,6 +1613,10 @@ function App() {
 
         <section className="list-section">
           <h2>Budgets</h2>
+          <p className="empty">
+            Budgets are monthly spending limits. Create expense transactions in
+            the selected category to update usage.
+          </p>
           <form className="simple-form" onSubmit={createBudget}>
             <div className="form-grid">
               <input
@@ -1748,7 +1755,12 @@ function App() {
                           {formatMinor(budget.amountMinor)} - Spent{" "}
                           {formatMinor(budget.spentMinor)} - Remaining{" "}
                           {formatMinor(budget.remainingMinor)} -{" "}
-                          {budget.progressPercent}%
+                          {formatPercentage(budget.progressPercentage)}
+                          {budget.isExceeded
+                            ? " - Exceeded"
+                            : budget.isNearLimit
+                              ? " - Near limit"
+                              : ""}
                         </small>
                       </div>
                       <div className="button-row">
@@ -2514,6 +2526,10 @@ function optionalNormalAmountToMinor(value: string) {
 
 function formatMinor(value: number) {
   return (value / 100).toFixed(2);
+}
+
+function formatPercentage(value: number) {
+  return `${value.toFixed(2)}%`;
 }
 
 function minorToNormalAmount(value: number) {

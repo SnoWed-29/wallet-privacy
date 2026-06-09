@@ -42,7 +42,7 @@ pub struct DashboardBudget {
     pub amount_minor: i64,
     pub spent_minor: i64,
     pub remaining_minor: i64,
-    pub progress_percent: i64,
+    pub progress_percentage: f64,
     pub is_near_limit: bool,
     pub is_exceeded: bool,
 }

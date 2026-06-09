@@ -34,7 +34,7 @@ pub async fn initialize_database(app_handle: &AppHandle) -> Result<SqlitePool, A
 }
 
 async fn seed_default_categories(pool: &SqlitePool) -> Result<(), AppError> {
-    for name in ["Budgets", "Recurring Bills", "Saving Contribution"] {
+    for name in ["Recurring Bills", "Saving Contribution"] {
         let now = Utc::now().to_rfc3339();
 
         sqlx::query(

@@ -84,7 +84,11 @@ impl DashboardRepository {
         Ok(transactions)
     }
 
-    pub async fn active_budgets(pool: &SqlitePool) -> Result<Vec<DashboardBudget>, AppError> {
+    pub async fn active_budgets(
+        pool: &SqlitePool,
+        month: i64,
+        year: i64,
+    ) -> Result<Vec<DashboardBudget>, AppError> {
         let budgets = sqlx::query_as::<_, DashboardBudget>(
             r#"
             SELECT
@@ -108,19 +112,19 @@ impl DashboardRepository {
                         WHEN transactions.transaction_type = 'expense' THEN transactions.amount_minor
                         ELSE 0
                     END
-                ), 0) * 100 / budgets.amount_minor AS progress_percent,
+                ), 0) * 100.0 / budgets.amount_minor AS progress_percentage,
                 COALESCE(SUM(
                     CASE
                         WHEN transactions.transaction_type = 'expense' THEN transactions.amount_minor
                         ELSE 0
                     END
-                ), 0) * 100 / budgets.amount_minor >= 80 AS is_near_limit,
+                ), 0) * 100.0 / budgets.amount_minor >= 80 AS is_near_limit,
                 COALESCE(SUM(
                     CASE
                         WHEN transactions.transaction_type = 'expense' THEN transactions.amount_minor
                         ELSE 0
                     END
-                ), 0) * 100 / budgets.amount_minor >= 100 AS is_exceeded
+                ), 0) * 100.0 / budgets.amount_minor >= 100 AS is_exceeded
             FROM budgets
             INNER JOIN categories ON categories.id = budgets.category_id
             LEFT JOIN transactions
@@ -132,10 +136,14 @@ impl DashboardRepository {
                     '+1 month'
                 )
             WHERE budgets.is_archived = 0
+                AND budgets.month = ?
+                AND budgets.year = ?
             GROUP BY budgets.id, budgets.name, categories.name, budgets.amount_minor
-            ORDER BY progress_percent DESC, budgets.created_at DESC
+            ORDER BY progress_percentage DESC, budgets.created_at DESC
             "#,
         )
+        .bind(month)
+        .bind(year)
         .fetch_all(pool)
         .await?;
 

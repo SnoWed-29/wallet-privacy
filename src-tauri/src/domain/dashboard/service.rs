@@ -51,7 +51,12 @@ impl DashboardService {
             monthly_net_minor: monthly_income_minor - monthly_expense_minor,
             accounts,
             recent_transactions: DashboardRepository::recent_transactions(pool).await?,
-            active_budgets: DashboardRepository::active_budgets(pool).await?,
+            active_budgets: DashboardRepository::active_budgets(
+                pool,
+                i64::from(today.month()),
+                i64::from(today.year()),
+            )
+            .await?,
             upcoming_recurring_bills: DashboardRepository::upcoming_recurring_bills(
                 pool,
                 &today.to_string(),

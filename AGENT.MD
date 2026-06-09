@@ -383,7 +383,7 @@ Rules:
 * Archived categories cannot be used for new transactions.
 * Archived categories cannot be used for new budgets.
 * Default expense categories are seeded after migrations run.
-* Seeded default categories are `Budgets`, `Recurring Bills`, and `Saving Contribution`.
+* Seeded default categories are `Recurring Bills` and `Saving Contribution`.
 * Default category seeding does not create duplicates when a category name already exists.
 * Categories are listed newest first by `created_at`.
 
@@ -451,7 +451,9 @@ Calculated budget list fields:
 * category_name
 * spent_minor
 * remaining_minor
-* progress_percent
+* progress_percentage
+* is_near_limit
+* is_exceeded
 
 Rules:
 
@@ -462,15 +464,22 @@ Rules:
 * Amount must be greater than 0.
 * Month must be between 1 and 12.
 * Year must be valid.
+* A budget is a monthly spending limit tied to an expense category.
+* A budget is not tied to an account.
+* Budgets do not create transactions.
+* Budgets do not move money.
+* Budget spent, remaining, and progress values are derived from transactions and are not source-of-truth stored values.
 * New budgets are created with `is_archived = false`.
 * Archived budgets are hidden from normal budget listings.
 * Budget usage is calculated from expense transactions in the budget category during the selected month and year.
 * Income transactions do not count toward budget usage.
+* Expense transactions from any account count when they use the budget category and fall inside the budget month.
 * Budgets are archived rather than physically deleted.
 
 Current limitations:
 
 * There is no budget restore or physical delete flow.
+* A default category named `Budgets` is not required for budget calculations.
 * There are no budget reports, charts, notifications, or rollover rules.
 
 ---
@@ -491,7 +500,7 @@ Current savings goal fields:
 Calculated savings goal list fields:
 
 * remaining_amount_minor
-* progress_percent
+* progress_percentage
 
 Rules:
 
@@ -601,6 +610,7 @@ Rules:
 * Monthly net is monthly income minus monthly expenses.
 * Total balance is calculated from active account balances using the same transaction-based balance logic as account listings.
 * Recent transactions return the latest 10 transactions by transaction date and creation time.
+* Dashboard budget data shows current-month active budgets.
 * Active budget progress is calculated from expense transactions for each budget month.
 * Budgets are marked near limit when progress is at least 80%.
 * Budgets are marked exceeded when progress is at least 100%.

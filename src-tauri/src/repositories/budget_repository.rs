@@ -73,15 +73,24 @@ impl BudgetRepository {
                         ELSE 0
                     END
                 ), 0) AS remaining_minor,
-                MIN(
-                    100,
-                    COALESCE(SUM(
-                        CASE
-                            WHEN transactions.transaction_type = 'expense' THEN transactions.amount_minor
-                            ELSE 0
-                        END
-                    ), 0) * 100 / budgets.amount_minor
-                ) AS progress_percent,
+                COALESCE(SUM(
+                    CASE
+                        WHEN transactions.transaction_type = 'expense' THEN transactions.amount_minor
+                        ELSE 0
+                    END
+                ), 0) * 100.0 / budgets.amount_minor AS progress_percentage,
+                COALESCE(SUM(
+                    CASE
+                        WHEN transactions.transaction_type = 'expense' THEN transactions.amount_minor
+                        ELSE 0
+                    END
+                ), 0) * 100.0 / budgets.amount_minor >= 80 AS is_near_limit,
+                COALESCE(SUM(
+                    CASE
+                        WHEN transactions.transaction_type = 'expense' THEN transactions.amount_minor
+                        ELSE 0
+                    END
+                ), 0) * 100.0 / budgets.amount_minor >= 100 AS is_exceeded,
                 budgets.month,
                 budgets.year,
                 budgets.is_archived,
@@ -139,15 +148,24 @@ impl BudgetRepository {
                         ELSE 0
                     END
                 ), 0) AS remaining_minor,
-                MIN(
-                    100,
-                    COALESCE(SUM(
-                        CASE
-                            WHEN transactions.transaction_type = 'expense' THEN transactions.amount_minor
-                            ELSE 0
-                        END
-                    ), 0) * 100 / budgets.amount_minor
-                ) AS progress_percent,
+                COALESCE(SUM(
+                    CASE
+                        WHEN transactions.transaction_type = 'expense' THEN transactions.amount_minor
+                        ELSE 0
+                    END
+                ), 0) * 100.0 / budgets.amount_minor AS progress_percentage,
+                COALESCE(SUM(
+                    CASE
+                        WHEN transactions.transaction_type = 'expense' THEN transactions.amount_minor
+                        ELSE 0
+                    END
+                ), 0) * 100.0 / budgets.amount_minor >= 80 AS is_near_limit,
+                COALESCE(SUM(
+                    CASE
+                        WHEN transactions.transaction_type = 'expense' THEN transactions.amount_minor
+                        ELSE 0
+                    END
+                ), 0) * 100.0 / budgets.amount_minor >= 100 AS is_exceeded,
                 budgets.month,
                 budgets.year,
                 budgets.is_archived,
