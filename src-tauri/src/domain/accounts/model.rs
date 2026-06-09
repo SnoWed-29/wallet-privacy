@@ -9,6 +9,7 @@ pub struct Account {
     pub account_type: String,
     pub currency: String,
     pub initial_balance_minor: i64,
+    pub balance_minor: i64,
     pub is_archived: bool,
     pub created_at: String,
     pub updated_at: String,

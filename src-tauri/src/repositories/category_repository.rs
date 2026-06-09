@@ -78,4 +78,27 @@ impl CategoryRepository {
 
         Ok(categories)
     }
+
+    pub async fn find_by_id(pool: &SqlitePool, id: &str) -> Result<Option<Category>, AppError> {
+        let category = sqlx::query_as::<_, Category>(
+            r#"
+            SELECT
+                id,
+                name,
+                category_type,
+                icon,
+                color,
+                is_archived,
+                created_at,
+                updated_at
+            FROM categories
+            WHERE id = ?
+            "#,
+        )
+        .bind(id)
+        .fetch_optional(pool)
+        .await?;
+
+        Ok(category)
+    }
 }

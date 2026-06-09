@@ -22,6 +22,7 @@ impl AccountRepository {
             account_type,
             currency,
             initial_balance_minor,
+            balance_minor: initial_balance_minor,
             is_archived: false,
             created_at: now.clone(),
             updated_at: now,
@@ -60,22 +61,79 @@ impl AccountRepository {
         let accounts = sqlx::query_as::<_, Account>(
             r#"
             SELECT
-                id,
-                name,
-                account_type,
-                currency,
-                initial_balance_minor,
-                is_archived,
-                created_at,
-                updated_at
+                accounts.id,
+                accounts.name,
+                accounts.account_type,
+                accounts.currency,
+                accounts.initial_balance_minor,
+                accounts.initial_balance_minor + COALESCE(SUM(
+                    CASE
+                        WHEN transactions.transaction_type = 'income' THEN transactions.amount_minor
+                        WHEN transactions.transaction_type = 'expense' THEN -transactions.amount_minor
+                        ELSE 0
+                    END
+                ), 0) AS balance_minor,
+                accounts.is_archived,
+                accounts.created_at,
+                accounts.updated_at
             FROM accounts
-            WHERE is_archived = 0
-            ORDER BY created_at DESC
+            LEFT JOIN transactions ON transactions.account_id = accounts.id
+            WHERE accounts.is_archived = 0
+            GROUP BY
+                accounts.id,
+                accounts.name,
+                accounts.account_type,
+                accounts.currency,
+                accounts.initial_balance_minor,
+                accounts.is_archived,
+                accounts.created_at,
+                accounts.updated_at
+            ORDER BY accounts.created_at DESC
             "#,
         )
         .fetch_all(pool)
         .await?;
 
         Ok(accounts)
+    }
+
+    pub async fn find_by_id(pool: &SqlitePool, id: &str) -> Result<Option<Account>, AppError> {
+        let account = sqlx::query_as::<_, Account>(
+            r#"
+            SELECT
+                accounts.id,
+                accounts.name,
+                accounts.account_type,
+                accounts.currency,
+                accounts.initial_balance_minor,
+                accounts.initial_balance_minor + COALESCE(SUM(
+                    CASE
+                        WHEN transactions.transaction_type = 'income' THEN transactions.amount_minor
+                        WHEN transactions.transaction_type = 'expense' THEN -transactions.amount_minor
+                        ELSE 0
+                    END
+                ), 0) AS balance_minor,
+                accounts.is_archived,
+                accounts.created_at,
+                accounts.updated_at
+            FROM accounts
+            LEFT JOIN transactions ON transactions.account_id = accounts.id
+            WHERE accounts.id = ?
+            GROUP BY
+                accounts.id,
+                accounts.name,
+                accounts.account_type,
+                accounts.currency,
+                accounts.initial_balance_minor,
+                accounts.is_archived,
+                accounts.created_at,
+                accounts.updated_at
+            "#,
+        )
+        .bind(id)
+        .fetch_optional(pool)
+        .await?;
+
+        Ok(account)
     }
 }

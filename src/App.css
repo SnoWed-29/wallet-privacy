@@ -59,6 +59,16 @@ h2 {
   gap: 8px;
 }
 
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.form-grid button {
+  grid-column: 1 / -1;
+}
+
 input,
 select,
 button {
@@ -176,7 +186,9 @@ button:active {
 }
 
 @media (max-width: 520px) {
-  .form-row {
+  .form-row,
+  .form-grid {
+    grid-template-columns: 1fr;
     flex-direction: column;
   }
 }

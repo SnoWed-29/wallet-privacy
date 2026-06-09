@@ -24,7 +24,9 @@ pub fn run() {
             commands::accounts::create_account,
             commands::accounts::list_accounts,
             commands::categories::create_category,
-            commands::categories::list_categories
+            commands::categories::list_categories,
+            commands::transactions::create_transaction,
+            commands::transactions::list_transactions
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
