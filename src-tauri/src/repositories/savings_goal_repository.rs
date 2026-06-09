@@ -175,7 +175,7 @@ impl SavingsGoalRepository {
             LIMIT 1
             "#,
         )
-        .bind("Savings Goal Contributions")
+        .bind("Saving Contribution")
         .fetch_optional(&mut *transaction)
         .await?;
 
@@ -199,7 +199,7 @@ impl SavingsGoalRepository {
                     "#,
                 )
                 .bind(&category_id)
-                .bind("Savings Goal Contributions")
+                .bind("Saving Contribution")
                 .bind("expense")
                 .bind(Option::<String>::None)
                 .bind(Option::<String>::None)

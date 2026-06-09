@@ -382,6 +382,9 @@ Rules:
 * Archived categories are hidden from normal category listings.
 * Archived categories cannot be used for new transactions.
 * Archived categories cannot be used for new budgets.
+* Default expense categories are seeded after migrations run.
+* Seeded default categories are `Budgets`, `Recurring Bills`, and `Saving Contribution`.
+* Default category seeding does not create duplicates when a category name already exists.
 * Categories are listed newest first by `created_at`.
 
 Current limitations:
@@ -414,6 +417,7 @@ Rules:
 * Archived categories cannot be used for transactions.
 * Transaction type must be either `income` or `expense`.
 * Category type must match transaction type.
+* The `Saving Contribution` category is reserved for savings goal contributions and cannot be selected for manual transactions.
 * Amount must be greater than 0.
 * Transaction date is required.
 * Blank descriptions are stored as NULL.
@@ -494,6 +498,7 @@ Rules:
 * Name is required after trimming.
 * Target amount must be greater than 0.
 * Current amount defaults to 0 when omitted.
+* Current amount may be 0.
 * Current amount cannot be negative.
 * Current amount cannot exceed target amount.
 * Deadline date is optional.
@@ -505,8 +510,8 @@ Rules:
 * Contribution amount must be greater than 0.
 * Contributions cannot make the current amount exceed the target amount.
 * Contributions create real expense transactions.
-* Contributions use an expense category named `Savings Goal Contributions`.
-* If no active expense category named `Savings Goal Contributions` exists, it is created automatically.
+* Contributions use an expense category named `Saving Contribution`.
+* If no active expense category named `Saving Contribution` exists, it is created automatically.
 * Contribution transaction descriptions default to `Contribution to <goal name>`.
 * Contribution transaction creation and savings goal current amount updates run in one database transaction.
 * If any contribution step fails, the whole contribution rolls back.
@@ -776,6 +781,7 @@ Expected behavior:
 * Application starts successfully.
 * SQLite database is created automatically.
 * Migrations run automatically.
+* Default expense categories are seeded without duplicates.
 * Accounts can be created.
 * Accounts can be listed.
 * Accounts can be edited and archived.

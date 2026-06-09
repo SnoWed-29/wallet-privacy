@@ -70,6 +70,8 @@ type RecurringBill = {
 
 type RecurringFrequency = "daily" | "weekly" | "monthly" | "yearly";
 
+const savingContributionCategoryName = "Saving Contribution";
+
 type DashboardSummary = {
   totalBalanceMinor: number;
   monthlyIncomeMinor: number;
@@ -246,7 +248,11 @@ function App() {
 
   const matchingCategories = useMemo(
     () =>
-      categories.filter((category) => category.categoryType === transactionType),
+      categories.filter(
+        (category) =>
+          category.categoryType === transactionType &&
+          category.name !== savingContributionCategoryName,
+      ),
     [categories, transactionType],
   );
 
@@ -1026,6 +1032,9 @@ function App() {
       await loadTransactions();
       await loadAccounts();
       await loadCategories();
+      if (dashboard) {
+        await loadDashboard();
+      }
     } catch (err) {
       setError(String(err));
     } finally {
@@ -1205,7 +1214,11 @@ function App() {
   }
 
   function editCategoriesFor(type: TransactionType) {
-    return categories.filter((category) => category.categoryType === type);
+    return categories.filter(
+      (category) =>
+        category.categoryType === type &&
+        category.name !== savingContributionCategoryName,
+    );
   }
 
   function accountNameFor(id: string) {
@@ -2480,11 +2493,23 @@ function normalAmountToMinor(value: string) {
 }
 
 function optionalNormalAmountToMinor(value: string) {
-  if (value.trim() === "") {
+  const trimmed = value.trim();
+  if (trimmed === "") {
     return 0;
   }
 
-  return normalAmountToMinor(value);
+  if (!/^\d+(\.\d{1,2})?$/.test(trimmed)) {
+    return null;
+  }
+
+  const [units, decimals = ""] = trimmed.split(".");
+  const amountMinor = Number(units) * 100 + Number(decimals.padEnd(2, "0"));
+
+  if (!Number.isSafeInteger(amountMinor) || amountMinor < 0) {
+    return null;
+  }
+
+  return amountMinor;
 }
 
 function formatMinor(value: number) {

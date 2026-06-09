@@ -10,6 +10,8 @@ use crate::repositories::account_repository::AccountRepository;
 use crate::repositories::category_repository::CategoryRepository;
 use crate::repositories::transaction_repository::TransactionRepository;
 
+const SAVING_CONTRIBUTION_CATEGORY_NAME: &str = "Saving Contribution";
+
 pub struct TransactionService;
 
 impl TransactionService {
@@ -230,6 +232,12 @@ async fn validate_transaction_fields(
     if category.is_archived {
         return Err(AppError::Validation(
             "Archived categories cannot be used.".to_string(),
+        ));
+    }
+    if category.name == SAVING_CONTRIBUTION_CATEGORY_NAME {
+        return Err(AppError::Validation(
+            "Saving Contribution transactions are created from savings goal contributions."
+                .to_string(),
         ));
     }
     if category.category_type != transaction_type {
