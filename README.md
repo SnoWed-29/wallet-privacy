@@ -30,3 +30,28 @@ npm run test:e2e
 E2E runs set `WALLET_TEST_MODE=true` and write data to
 `.tmp/wallet-e2e-data`, so they do not use the real app data directory.
 See `e2e/README.md` for current setup notes and limitations.
+
+## Continuous Integration
+
+GitHub Actions runs CI on pushes to `dev`/`main` and pull requests targeting
+`dev`/`main`.
+
+CI checks:
+
+- Frontend: `npm ci`, `npm run typecheck`, `npm run test`, `npm run build`
+- Rust backend: `cargo fmt --manifest-path src-tauri/Cargo.toml -- --check`,
+  `cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings`,
+  and `cargo test --manifest-path src-tauri/Cargo.toml`
+- Tauri: Linux build validation with the required Tauri system dependencies
+
+Run the same core checks locally with:
+
+```bash
+npm ci
+npm run typecheck
+npm run test
+npm run build
+cargo fmt --manifest-path src-tauri/Cargo.toml -- --check
+cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings
+cargo test --manifest-path src-tauri/Cargo.toml
+```
