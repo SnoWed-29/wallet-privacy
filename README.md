@@ -58,7 +58,9 @@ cargo test --manifest-path src-tauri/Cargo.toml
 ## Manual Releases
 
 Release builds are created only when a version tag matching `v*` is pushed.
-The release workflow does not change versions or create tags automatically.
+The release workflow first runs checks/tests, then builds the Windows desktop
+app and creates a draft GitHub Release only if those checks pass. The workflow
+does not change versions or create tags automatically.
 
 Recommended process:
 
@@ -71,7 +73,8 @@ Recommended process:
 4. Push the branch and tag:
    `git push origin dev`
    `git push origin vX.Y.Z`
-5. GitHub Actions builds the Windows Tauri app.
-6. A draft GitHub Release is created for the tag.
-7. Inspect the attached installer/artifacts.
-8. Publish the release manually when ready.
+5. GitHub Actions runs the `release-checks` job.
+6. If checks pass, the `windows-release` job builds the Windows Tauri app.
+7. A draft GitHub Release is created for the tag.
+8. Inspect the attached installer/artifacts.
+9. Publish the release manually when ready.
