@@ -3,9 +3,8 @@ import { useWalletAppContext } from "../../wallet/WalletAppContext";
 import type { RecurringFrequency } from "../../../types/wallet";
 
 export function PlanningPage() {
-  const {
-    error,
-    createBudget,
+  const {
+createBudget,
     budgetForm,
     updateBudgetForm,
     expenseCategories,
@@ -60,21 +59,27 @@ export function PlanningPage() {
     archiveRecurringBill,
     archivingRecurringBillId,
     monthOptions,
-  } = useWalletAppContext();
+  } = useWalletAppContext();
+
+  const currentYear = new Date().getFullYear();
+  const budgetYearOptions = [
+    currentYear - 2,
+    currentYear - 1,
+    currentYear,
+    currentYear + 1,
+    currentYear + 2,
+  ];
 
   return (
     <>
               <PageIntro
                 description="Plan ahead with budgets, recurring bills, and savings goals."
                 title="Planning"
-              />
-              {error && <p className="error">{error}</p>}
-
-        <section className="list-section" id="budgets">
+              />
+<section className="list-section" id="budgets">
           <h2>Monthly Budgets</h2>
           <p className="empty">
-            Budgets are monthly spending limits. Create expense transactions in
-            the selected category to update usage.
+            Create monthly spending limits for one category, month, and year.
           </p>
           <form className="simple-form" onSubmit={createBudget}>
             <div className="form-grid">
@@ -118,19 +123,45 @@ export function PlanningPage() {
                   </option>
                 ))}
               </select>
-              <input
-                value={budgetForm.year}
-                onChange={(event) =>
-                  updateBudgetForm({ year: event.target.value })
-                }
-                inputMode="numeric"
-                placeholder="Year"
-              />
+              <select
+
+
+                value={budgetForm.year}
+
+
+                onChange={(event) =>
+
+
+                  updateBudgetForm({ year: event.target.value })
+
+
+                }
+
+
+              >
+
+
+                {budgetYearOptions.map((year) => (
+
+
+                  <option key={year} value={year}>
+
+
+                    {year}
+
+
+                  </option>
+
+
+                ))}
+
+
+              </select>
               <button
                 type="submit"
                 disabled={isSavingBudget || expenseCategories.length === 0}
               >
-                {isSavingBudget ? "Creating..." : "Create budget"}
+                {isSavingBudget ? "Creating..." : "Create Monthly Budget"}
               </button>
             </div>
           </form>
@@ -186,17 +217,43 @@ export function PlanningPage() {
                           </option>
                         ))}
                       </select>
-                      <input
-                        value={editBudget.year}
-                        onChange={(event) =>
-                          updateEditBudget({ year: event.target.value })
-                        }
-                        inputMode="numeric"
-                        placeholder="Year"
-                      />
+                      <select
+
+
+                        value={editBudget.year}
+
+
+                        onChange={(event) =>
+
+
+                          updateEditBudget({ year: event.target.value })
+
+
+                        }
+
+
+                      >
+
+
+                        {budgetYearOptions.map((year) => (
+
+
+                          <option key={year} value={year}>
+
+
+                            {year}
+
+
+                          </option>
+
+
+                        ))}
+
+
+                      </select>
                       <div className="button-row">
                         <button type="submit" disabled={isUpdatingBudget}>
-                          {isUpdatingBudget ? "Saving..." : "Save"}
+                          {isUpdatingBudget ? "Saving..." : "Save Monthly Budget"}
                         </button>
                         <button type="button" onClick={cancelEditingBudget}>
                           Cancel
@@ -282,7 +339,7 @@ export function PlanningPage() {
                 }
               />
               <button type="submit" disabled={isSavingSavingsGoal}>
-                {isSavingSavingsGoal ? "Creating..." : "Create goal"}
+                {isSavingSavingsGoal ? "Creating..." : "Create Savings Goal"}
               </button>
             </div>
           </form>
@@ -515,7 +572,7 @@ export function PlanningPage() {
                   expenseCategories.length === 0
                 }
               >
-                {isSavingRecurringBill ? "Creating..." : "Create bill"}
+                {isSavingRecurringBill ? "Creating..." : "Add Recurring Bill"}
               </button>
             </div>
           </form>

@@ -5,9 +5,10 @@ type EmptyStateProps = {
   title?: string;
   children?: ReactNode;
   className?: string;
+  icon?: ReactNode;
 };
 
-export function EmptyState({ title, children, className }: EmptyStateProps) {
+export function EmptyState({ title, children, className, icon }: EmptyStateProps) {
   return (
     <div
       className={cn(
@@ -15,6 +16,11 @@ export function EmptyState({ title, children, className }: EmptyStateProps) {
         className,
       )}
     >
+      {icon ? (
+        <div className="mb-3 grid h-10 w-10 place-items-center rounded-xl bg-white text-slate-600 shadow-app-soft">
+          {icon}
+        </div>
+      ) : null}
       {title ? (
         <p className="mb-1 font-extrabold text-slate-700">{title}</p>
       ) : null}

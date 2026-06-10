@@ -21,8 +21,7 @@ export function ManageWalletPage() {
       editCategoryType={wallet.editCategoryType}
       editingAccountId={wallet.editingAccountId}
       editingCategoryId={wallet.editingCategoryId}
-      error={wallet.error}
-      formatMinor={wallet.formatMinor}
+formatMinor={wallet.formatMinor}
       isSavingAccount={wallet.isSavingAccount}
       isSavingCategory={wallet.isSavingCategory}
       isUpdatingAccount={wallet.isUpdatingAccount}
@@ -63,9 +62,8 @@ type ManageWalletPageProps = {
   isSavingAccount: boolean;
   isSavingCategory: boolean;
   isUpdatingAccount: boolean;
-  isUpdatingCategory: boolean;
-  error: string;
-  setAccountName: (value: string) => void;
+  isUpdatingCategory: boolean;
+setAccountName: (value: string) => void;
   setCategoryName: (value: string) => void;
   setCategoryType: (value: TransactionType) => void;
   setEditAccountName: (value: string) => void;
@@ -106,9 +104,8 @@ function ManageWalletView({
   isSavingAccount,
   isSavingCategory,
   isUpdatingAccount,
-  isUpdatingCategory,
-  error,
-  setAccountName,
+  isUpdatingCategory,
+setAccountName,
   setCategoryName,
   setCategoryType,
   setEditAccountName,
@@ -131,11 +128,8 @@ function ManageWalletView({
       <PageIntro
         description="Manage your accounts, wallets, and transaction categories."
         title="Manage Wallet"
-      />
-
-      {error && <p className="error">{error}</p>}
-
-      <AppCard
+      />
+<AppCard
         actions={
           <form
             className="flex min-w-[min(100%,28rem)] gap-2 max-sm:w-full max-sm:flex-col"
@@ -152,11 +146,11 @@ function ManageWalletView({
               type="submit"
               variant="primary"
             >
-              {isSavingAccount ? "Creating..." : "Add account"}
+              {isSavingAccount ? "Creating..." : "Add Account"}
             </AppButton>
           </form>
         }
-        description="Accounts represent the places where money lives, such as cash, checking, or a wallet."
+        description="Add and maintain the local accounts and wallets used for transactions."
         id="accounts"
         title="Accounts"
       >
@@ -280,11 +274,11 @@ function ManageWalletView({
               type="submit"
               variant="primary"
             >
-              {isSavingCategory ? "Creating..." : "Add category"}
+              {isSavingCategory ? "Creating..." : "Add Category"}
             </AppButton>
           </form>
         }
-        description="Categories keep transactions organized for filtering, budgets, and reporting."
+        description="Create income and expense categories so transactions stay organized."
         id="categories"
         title="Categories"
       >

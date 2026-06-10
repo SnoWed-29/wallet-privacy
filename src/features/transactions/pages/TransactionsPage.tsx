@@ -1,4 +1,14 @@
-import { FormEvent } from "react";
+import { FormEvent, useMemo, useState } from "react";
+import {
+  ArrowDown,
+  ArrowDownUp,
+  ArrowUp,
+  Filter,
+  Pencil,
+  Plus,
+  Search,
+  Trash2,
+} from "lucide-react";
 import {
   AppBadge,
   AppButton,
@@ -16,6 +26,10 @@ import {
   type TransactionFormState,
   type TransactionType,
 } from "../types";
+
+type SortKey = "date" | "amount" | "type" | "category" | "account";
+
+type SortDirection = "asc" | "desc";
 
 type TransactionsPageProps = {
   accounts: Account[];
@@ -94,12 +108,53 @@ export function TransactionsPage({
   categoryNameFor,
   formatMinor,
 }: TransactionsPageProps) {
+  const [sortKey, setSortKey] = useState<SortKey>("date");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
+
   function scrollToCreateForm() {
     document.getElementById("add-transaction-form")?.scrollIntoView({
       behavior: "smooth",
       block: "start",
     });
   }
+
+  function updateSort(nextKey: SortKey) {
+    if (nextKey === sortKey) {
+      setSortDirection((current) => (current === "asc" ? "desc" : "asc"));
+      return;
+    }
+
+    setSortKey(nextKey);
+    setSortDirection(nextKey === "date" || nextKey === "amount" ? "desc" : "asc");
+  }
+
+  const sortedTransactions = useMemo(() => {
+    return [...transactions].sort((first, second) => {
+      const direction = sortDirection === "asc" ? 1 : -1;
+      const firstValue = transactionSortValue(
+        first,
+        sortKey,
+        accountNameFor,
+        categoryNameFor,
+      );
+      const secondValue = transactionSortValue(
+        second,
+        sortKey,
+        accountNameFor,
+        categoryNameFor,
+      );
+
+      if (firstValue < secondValue) {
+        return -1 * direction;
+      }
+
+      if (firstValue > secondValue) {
+        return 1 * direction;
+      }
+
+      return 0;
+    });
+  }, [accountNameFor, categoryNameFor, sortDirection, sortKey, transactions]);
 
   return (
     <section className="grid gap-5">
@@ -116,6 +171,7 @@ export function TransactionsPage({
             </p>
           </div>
           <AppButton onClick={scrollToCreateForm} variant="primary">
+            <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
             Add Transaction
           </AppButton>
         </div>
@@ -124,7 +180,7 @@ export function TransactionsPage({
       <AppCard
         description="Add a new income or expense without leaving the transactions page."
         id="add-transaction-form"
-        title="Add transaction"
+        title="Record money movement"
       >
         <form className="grid gap-4" onSubmit={onCreateTransaction}>
           <div className="grid grid-cols-3 gap-3 max-xl:grid-cols-2 max-md:grid-cols-1">
@@ -188,15 +244,15 @@ export function TransactionsPage({
               type="submit"
               variant="primary"
             >
-              {isSavingTransaction ? "Creating..." : "Create transaction"}
+              {isSavingTransaction ? "Creating..." : "Add Transaction"}
             </AppButton>
           </div>
         </form>
       </AppCard>
 
       <AppCard
-        description="Narrow the table by search text, category, account, type, or date range."
-        title="Filters"
+        description="Search and narrow the ledger without changing your saved data."
+        title="Filter transactions"
       >
         <form className="grid gap-4" onSubmit={onApplyFilters}>
           <div className="grid grid-cols-3 gap-3 max-xl:grid-cols-2 max-md:grid-cols-1">
@@ -205,7 +261,7 @@ export function TransactionsPage({
               onChange={(event) =>
                 onUpdateTransactionFilter({ search: event.target.value })
               }
-              placeholder="Search transactions"
+              placeholder="Search by description or notes"
             />
             <AppSelect
               value={transactionFilters.categoryId}
@@ -266,6 +322,7 @@ export function TransactionsPage({
               type="submit"
               variant="secondary"
             >
+              <Filter className="mr-2 h-4 w-4" aria-hidden="true" />
               {isFilteringTransactions ? "Filtering..." : "Apply filters"}
             </AppButton>
             <AppButton onClick={onClearFilters} variant="ghost">
@@ -289,6 +346,7 @@ export function TransactionsPage({
               onClick={scrollToCreateForm}
               variant="primary"
             >
+              <Search className="mr-2 h-4 w-4" aria-hidden="true" />
               Add Transaction
             </AppButton>
           </EmptyState>
@@ -297,21 +355,50 @@ export function TransactionsPage({
             <AppTable>
               <thead className="bg-slate-50 text-xs uppercase tracking-wide text-app-muted">
                 <tr>
-                  <th className="px-4 py-3 font-extrabold">Date</th>
+                  <SortHeader
+                    activeKey={sortKey}
+                    direction={sortDirection}
+                    label="Date"
+                    onSort={updateSort}
+                    sortKey="date"
+                  />
                   <th className="px-4 py-3 font-extrabold">Description</th>
-                  <th className="px-4 py-3 font-extrabold">Category</th>
-                  <th className="px-4 py-3 font-extrabold">Account</th>
-                  <th className="px-4 py-3 text-right font-extrabold">
-                    Amount
-                  </th>
-                  <th className="px-4 py-3 font-extrabold">Type</th>
+                  <SortHeader
+                    activeKey={sortKey}
+                    direction={sortDirection}
+                    label="Category"
+                    onSort={updateSort}
+                    sortKey="category"
+                  />
+                  <SortHeader
+                    activeKey={sortKey}
+                    direction={sortDirection}
+                    label="Account"
+                    onSort={updateSort}
+                    sortKey="account"
+                  />
+                  <SortHeader
+                    activeKey={sortKey}
+                    align="right"
+                    direction={sortDirection}
+                    label="Amount"
+                    onSort={updateSort}
+                    sortKey="amount"
+                  />
+                  <SortHeader
+                    activeKey={sortKey}
+                    direction={sortDirection}
+                    label="Type"
+                    onSort={updateSort}
+                    sortKey="type"
+                  />
                   <th className="px-4 py-3 text-right font-extrabold">
                     Actions
                   </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-app-border">
-                {transactions.map((transaction) => (
+                {sortedTransactions.map((transaction) => (
                   <TransactionRow
                     accountName={accountNameFor(transaction.accountId)}
                     categoryName={categoryNameFor(transaction.categoryId)}
@@ -357,6 +444,61 @@ type TransactionRowProps = {
   editCategoriesFor: (type: TransactionType) => Category[];
   formatMinor: (value: number) => string;
 };
+
+type SortHeaderProps = {
+  activeKey: SortKey;
+  align?: "left" | "right";
+  direction: SortDirection;
+  label: string;
+  onSort: (sortKey: SortKey) => void;
+  sortKey: SortKey;
+};
+
+function SortHeader({
+  activeKey,
+  align = "left",
+  direction,
+  label,
+  onSort,
+  sortKey,
+}: SortHeaderProps) {
+  const isActive = activeKey === sortKey;
+  const Icon = !isActive ? ArrowDownUp : direction === "asc" ? ArrowUp : ArrowDown;
+
+  return (
+    <th className={align === "right" ? "px-4 py-3 text-right" : "px-4 py-3"}>
+      <button
+        className="inline-flex min-h-0 items-center gap-1.5 rounded-md border-0 bg-transparent p-0 text-xs font-extrabold uppercase tracking-wide text-app-muted shadow-none hover:bg-transparent hover:text-app-text hover:shadow-none"
+        type="button"
+        onClick={() => onSort(sortKey)}
+      >
+        {label}
+        <Icon className="h-3.5 w-3.5" aria-hidden="true" />
+      </button>
+    </th>
+  );
+}
+
+function transactionSortValue(
+  transaction: Transaction,
+  sortKey: SortKey,
+  accountNameFor: (id: string) => string,
+  categoryNameFor: (id: string) => string,
+) {
+  switch (sortKey) {
+    case "amount":
+      return transaction.amountMinor;
+    case "type":
+      return transaction.transactionType;
+    case "category":
+      return categoryNameFor(transaction.categoryId).toLowerCase();
+    case "account":
+      return accountNameFor(transaction.accountId).toLowerCase();
+    case "date":
+    default:
+      return transaction.transactionDate;
+  }
+}
 
 function TransactionRow({
   accounts,
@@ -505,6 +647,7 @@ function TransactionRow({
             onClick={() => onStartEditingTransaction(transaction)}
             variant="ghost"
           >
+            <Pencil className="mr-2 h-4 w-4" aria-hidden="true" />
             Edit
           </AppButton>
           <AppButton
@@ -512,6 +655,7 @@ function TransactionRow({
             onClick={() => onDeleteTransaction(transaction.id)}
             variant="danger"
           >
+            <Trash2 className="mr-2 h-4 w-4" aria-hidden="true" />
             {deletingTransactionId === transaction.id ? "Deleting..." : "Delete"}
           </AppButton>
         </div>

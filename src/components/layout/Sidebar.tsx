@@ -1,10 +1,11 @@
-import { cn } from "../../lib/classNames";
+import { type LucideIcon, WalletCards } from "lucide-react";
 import { NavLink } from "react-router-dom";
+import { cn } from "../../lib/classNames";
 
 export type NavigationItem = {
   label: string;
   href: string;
-  icon: string;
+  icon: LucideIcon;
 };
 
 type SidebarProps = {
@@ -23,7 +24,7 @@ export function Sidebar({ items, className }: SidebarProps) {
     >
       <div className="flex items-center gap-3 px-2">
         <div className="grid h-11 w-11 place-items-center rounded-xl bg-white font-extrabold text-app-sidebar">
-          W
+          <WalletCards className="h-5 w-5" aria-hidden="true" />
         </div>
         <div>
           <strong className="block text-base">Wallet</strong>
@@ -35,23 +36,34 @@ export function Sidebar({ items, className }: SidebarProps) {
 
       <nav className="grid gap-1.5 max-lg:grid-cols-2 max-sm:grid-cols-1">
         {items.map((item) => (
-          <NavLink
-            key={item.href}
-            className={({ isActive }) =>
-              cn(
-                "flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold text-slate-300 no-underline transition hover:translate-x-0.5 hover:bg-white/10 hover:text-white focus-visible:translate-x-0.5 focus-visible:bg-white/10 focus-visible:text-white focus-visible:outline-none",
-                isActive && "bg-white/10 text-white",
-              )
-            }
-            to={item.href}
-          >
-            <span className="grid h-7 w-7 place-items-center rounded-lg bg-white/10 text-xs font-extrabold text-white">
-              {item.icon}
-            </span>
-            {item.label}
-          </NavLink>
+          <SidebarLink item={item} key={item.href} />
         ))}
       </nav>
     </aside>
+  );
+}
+
+type SidebarLinkProps = {
+  item: NavigationItem;
+};
+
+function SidebarLink({ item }: SidebarLinkProps) {
+  const Icon = item.icon;
+
+  return (
+    <NavLink
+      className={({ isActive }) =>
+        cn(
+          "flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold text-slate-300 no-underline transition hover:translate-x-0.5 hover:bg-white/10 hover:text-white focus-visible:translate-x-0.5 focus-visible:bg-white/10 focus-visible:text-white focus-visible:outline-none",
+          isActive && "bg-white/10 text-white",
+        )
+      }
+      to={item.href}
+    >
+      <span className="grid h-7 w-7 place-items-center rounded-lg bg-white/10 text-xs font-extrabold text-white">
+        <Icon className="h-4 w-4" aria-hidden="true" />
+      </span>
+      {item.label}
+    </NavLink>
   );
 }
