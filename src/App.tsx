@@ -1300,9 +1300,13 @@ function App() {
           }
         />
         <Route
-          path="*"
+          path="/manage"
           element={
             <>
+              <PageIntro
+                description="Set up the wallet foundations used across transactions, budgets, bills, and goals."
+                title="Manage Wallet"
+              />
 
         <form className="simple-form" onSubmit={createAccount}>
           <label htmlFor="account-name">Account name</label>
@@ -1481,8 +1485,21 @@ function App() {
           )}
         </section>
 
+            </>
+          }
+        />
+        <Route
+          path="/planning"
+          element={
+            <>
+              <PageIntro
+                description="Plan ahead with budgets, recurring bills, and savings goals."
+                title="Planning"
+              />
+              {error && <p className="error">{error}</p>}
+
         <section className="list-section" id="budgets">
-          <h2>Budgets</h2>
+          <h2>Monthly Budgets</h2>
           <p className="empty">
             Budgets are monthly spending limits. Create expense transactions in
             the selected category to update usage.
@@ -2075,24 +2092,28 @@ function App() {
           )}
         </section>
 
-          <section className="list-section" id="reports">
-            <h2>Reports</h2>
-            <p className="empty">
-              Reports will use this shell in a future UI pass. No reporting
-              features have been added yet.
-            </p>
-          </section>
-
-          <section className="list-section" id="settings">
-            <h2>Settings</h2>
-            <p className="empty">
-              Settings will use this shell in a future UI pass. No settings
-              features have been added yet.
-            </p>
-          </section>
             </>
           }
         />
+        <Route
+          path="/reports"
+          element={
+            <PlaceholderPage
+              description="Financial summaries and reports will be designed in a future UI pass."
+              title="Reports"
+            />
+          }
+        />
+        <Route
+          path="/settings"
+          element={
+            <PlaceholderPage
+              description="Local app preferences and configuration will be designed in a future UI pass."
+              title="Settings"
+            />
+          }
+        />
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
     </AppLayout>
   );
@@ -2179,6 +2200,39 @@ function hasActiveTransactionFilters(filters: TransactionFilterState) {
   return Object.values(filters).some((value) => value.trim() !== "");
 }
 
+type PageIntroProps = {
+  title: string;
+  description: string;
+};
+
+function PageIntro({ title, description }: PageIntroProps) {
+  return (
+    <AppCard className="overflow-hidden border-slate-200 bg-gradient-to-br from-white via-white to-emerald-50/70">
+      <div className="max-w-3xl">
+        <AppBadge variant="neutral">{title}</AppBadge>
+        <h2 className="mt-4 text-3xl font-extrabold tracking-tight text-app-text">
+          {title}
+        </h2>
+        <p className="mt-2 text-base text-app-muted">{description}</p>
+      </div>
+    </AppCard>
+  );
+}
+
+function PlaceholderPage({ title, description }: PageIntroProps) {
+  return (
+    <section className="grid gap-5">
+      <PageIntro description={description} title={title} />
+      <AppCard>
+        <EmptyState title={`${title} coming soon`}>
+          This page is part of the new navigation structure and will be expanded
+          in a future UI pass.
+        </EmptyState>
+      </AppCard>
+    </section>
+  );
+}
+
 type DashboardViewProps = {
   dashboard: DashboardSummary | null;
   isLoadingDashboard: boolean;
@@ -2203,11 +2257,11 @@ function DashboardView({
           <div className="max-w-2xl">
             <AppBadge variant="success">Dashboard</AppBadge>
             <h2 className="mt-4 text-3xl font-extrabold tracking-tight text-app-text">
-              Welcome back
+              Dashboard
             </h2>
             <p className="mt-2 text-base text-app-muted">
-              Here is your financial overview, refreshed from your local wallet
-              data.
+              Welcome back. Here is your financial overview, refreshed from your
+              local wallet data.
             </p>
           </div>
           <AppButton

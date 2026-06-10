@@ -108,7 +108,7 @@ export function TransactionsPage({
           <div className="max-w-2xl">
             <AppBadge variant="neutral">Transactions</AppBadge>
             <h2 className="mt-4 text-3xl font-extrabold tracking-tight text-app-text">
-              Manage transactions
+              Transactions
             </h2>
             <p className="mt-2 text-base text-app-muted">
               View, search, filter, create, edit, and delete your local
