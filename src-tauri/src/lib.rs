@@ -1,9 +1,9 @@
-mod commands;
-mod database;
-mod domain;
-mod errors;
-mod repositories;
-mod state;
+pub mod commands;
+pub mod database;
+pub mod domain;
+pub mod errors;
+pub mod repositories;
+pub mod state;
 
 use state::app_state::AppState;
 use tauri::Manager;

@@ -8,7 +8,7 @@ use crate::domain::transactions::model::Transaction;
 use crate::errors::app_error::AppError;
 use crate::repositories::account_repository::AccountRepository;
 use crate::repositories::category_repository::CategoryRepository;
-use crate::repositories::transaction_repository::TransactionRepository;
+use crate::repositories::transaction_repository::{TransactionRepository, TransactionUpdate};
 
 const SAVING_CONTRIBUTION_CATEGORY_NAME: &str = "Saving Contribution";
 
@@ -75,13 +75,15 @@ impl TransactionService {
 
         TransactionRepository::update(
             pool,
-            id,
-            validated.account_id,
-            validated.category_id,
-            validated.transaction_type,
-            request.amount_minor,
-            validated.description,
-            validated.transaction_date,
+            TransactionUpdate {
+                id,
+                account_id: validated.account_id,
+                category_id: validated.category_id,
+                transaction_type: validated.transaction_type,
+                amount_minor: request.amount_minor,
+                description: validated.description,
+                transaction_date: validated.transaction_date,
+            },
         )
         .await
     }

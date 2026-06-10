@@ -9,7 +9,9 @@ use crate::domain::recurring_bills::model::RecurringBill;
 use crate::errors::app_error::AppError;
 use crate::repositories::account_repository::AccountRepository;
 use crate::repositories::category_repository::CategoryRepository;
-use crate::repositories::recurring_bill_repository::RecurringBillRepository;
+use crate::repositories::recurring_bill_repository::{
+    MarkRecurringBillPaid, RecurringBillRepository, RecurringBillWrite,
+};
 
 pub struct RecurringBillService;
 
@@ -20,27 +22,19 @@ impl RecurringBillService {
     ) -> Result<RecurringBill, AppError> {
         let validated = validate_recurring_bill_fields(
             pool,
-            request.name,
-            request.account_id,
-            request.category_id,
-            request.amount_minor,
-            request.frequency,
-            request.next_due_date,
-            request.description,
+            RecurringBillValidationInput {
+                name: request.name,
+                account_id: request.account_id,
+                category_id: request.category_id,
+                amount_minor: request.amount_minor,
+                frequency: request.frequency,
+                next_due_date: request.next_due_date,
+                description: request.description,
+            },
         )
         .await?;
 
-        RecurringBillRepository::create(
-            pool,
-            validated.name,
-            validated.account_id,
-            validated.category_id,
-            request.amount_minor,
-            validated.frequency,
-            validated.next_due_date,
-            validated.description,
-        )
-        .await
+        RecurringBillRepository::create(pool, validated.into_write()).await
     }
 
     pub async fn list(pool: &SqlitePool) -> Result<Vec<RecurringBill>, AppError> {
@@ -69,28 +63,19 @@ impl RecurringBillService {
 
         let validated = validate_recurring_bill_fields(
             pool,
-            request.name,
-            request.account_id,
-            request.category_id,
-            request.amount_minor,
-            request.frequency,
-            request.next_due_date,
-            request.description,
+            RecurringBillValidationInput {
+                name: request.name,
+                account_id: request.account_id,
+                category_id: request.category_id,
+                amount_minor: request.amount_minor,
+                frequency: request.frequency,
+                next_due_date: request.next_due_date,
+                description: request.description,
+            },
         )
         .await?;
 
-        RecurringBillRepository::update(
-            pool,
-            id,
-            validated.name,
-            validated.account_id,
-            validated.category_id,
-            request.amount_minor,
-            validated.frequency,
-            validated.next_due_date,
-            validated.description,
-        )
-        .await
+        RecurringBillRepository::update(pool, id, validated.into_write()).await
     }
 
     pub async fn archive(
@@ -151,29 +136,21 @@ impl RecurringBillService {
 
         RecurringBillRepository::mark_paid(
             pool,
-            &id,
-            &bill.account_id,
-            &bill.category_id,
-            bill.amount_minor,
-            paid_date,
-            next_due_date,
-            description,
+            MarkRecurringBillPaid {
+                bill_id: id,
+                account_id: bill.account_id,
+                category_id: bill.category_id,
+                amount_minor: bill.amount_minor,
+                paid_date,
+                next_due_date,
+                description,
+            },
         )
         .await
     }
 }
 
-struct ValidatedRecurringBillFields {
-    name: String,
-    account_id: String,
-    category_id: String,
-    frequency: String,
-    next_due_date: String,
-    description: Option<String>,
-}
-
-async fn validate_recurring_bill_fields(
-    pool: &SqlitePool,
+struct RecurringBillValidationInput {
     name: String,
     account_id: String,
     category_id: String,
@@ -181,33 +158,62 @@ async fn validate_recurring_bill_fields(
     frequency: String,
     next_due_date: String,
     description: Option<String>,
+}
+
+struct ValidatedRecurringBillFields {
+    name: String,
+    account_id: String,
+    category_id: String,
+    amount_minor: i64,
+    frequency: String,
+    next_due_date: String,
+    description: Option<String>,
+}
+
+impl ValidatedRecurringBillFields {
+    fn into_write(self) -> RecurringBillWrite {
+        RecurringBillWrite {
+            name: self.name,
+            account_id: self.account_id,
+            category_id: self.category_id,
+            amount_minor: self.amount_minor,
+            frequency: self.frequency,
+            next_due_date: self.next_due_date,
+            description: self.description,
+        }
+    }
+}
+
+async fn validate_recurring_bill_fields(
+    pool: &SqlitePool,
+    input: RecurringBillValidationInput,
 ) -> Result<ValidatedRecurringBillFields, AppError> {
-    let name = name.trim().to_string();
+    let name = input.name.trim().to_string();
     if name.is_empty() {
         return Err(AppError::Validation(
             "Recurring bill name is required.".to_string(),
         ));
     }
 
-    let account_id = account_id.trim().to_string();
+    let account_id = input.account_id.trim().to_string();
     if account_id.is_empty() {
         return Err(AppError::Validation("Account is required.".to_string()));
     }
     validate_account(pool, &account_id).await?;
 
-    let category_id = category_id.trim().to_string();
+    let category_id = input.category_id.trim().to_string();
     if category_id.is_empty() {
         return Err(AppError::Validation("Category is required.".to_string()));
     }
     validate_expense_category(pool, &category_id).await?;
 
-    if amount_minor <= 0 {
+    if input.amount_minor <= 0 {
         return Err(AppError::Validation(
             "Recurring bill amount must be greater than 0.".to_string(),
         ));
     }
 
-    let frequency = frequency.trim().to_lowercase();
+    let frequency = input.frequency.trim().to_lowercase();
     if !matches!(
         frequency.as_str(),
         "daily" | "weekly" | "monthly" | "yearly"
@@ -217,7 +223,7 @@ async fn validate_recurring_bill_fields(
         ));
     }
 
-    let next_due_date = next_due_date.trim().to_string();
+    let next_due_date = input.next_due_date.trim().to_string();
     if next_due_date.is_empty() {
         return Err(AppError::Validation(
             "Next due date is required.".to_string(),
@@ -229,9 +235,10 @@ async fn validate_recurring_bill_fields(
         name,
         account_id,
         category_id,
+        amount_minor: input.amount_minor,
         frequency,
         next_due_date,
-        description: empty_string_to_none(description),
+        description: empty_string_to_none(input.description),
     })
 }
 
