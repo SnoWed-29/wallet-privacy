@@ -21,6 +21,7 @@ export function Sidebar({ items, className }: SidebarProps) {
         className,
       )}
       aria-label="Primary navigation"
+      data-testid="app-sidebar"
     >
       <div className="flex items-center gap-3 px-2">
         <div className="grid h-11 w-11 place-items-center rounded-xl bg-white font-extrabold text-app-sidebar">
@@ -59,6 +60,7 @@ function SidebarLink({ item }: SidebarLinkProps) {
         )
       }
       to={item.href}
+      data-testid={`nav-${item.label.toLowerCase().replace(/\s+/g, "-")}`}
     >
       <span className="grid h-7 w-7 place-items-center rounded-lg bg-white/10 text-xs font-extrabold text-white">
         <Icon className="h-4 w-4" aria-hidden="true" />
