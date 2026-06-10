@@ -1,6 +1,7 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import "./App.css";
+import { AppLayout, navigationItems } from "./components/layout";
+import "./styles/globals.css";
 
 type TransactionType = "income" | "expense";
 
@@ -73,18 +74,6 @@ type RecurringBill = {
 type RecurringFrequency = "daily" | "weekly" | "monthly" | "yearly";
 
 const savingContributionCategoryName = "Saving Contribution";
-
-const navigationItems = [
-  { label: "Dashboard", href: "#dashboard", icon: "D" },
-  { label: "Accounts", href: "#accounts", icon: "A" },
-  { label: "Transactions", href: "#transactions", icon: "T" },
-  { label: "Categories", href: "#categories", icon: "C" },
-  { label: "Budgets", href: "#budgets", icon: "B" },
-  { label: "Bills", href: "#bills", icon: "I" },
-  { label: "Savings Goals", href: "#savings-goals", icon: "S" },
-  { label: "Reports", href: "#reports", icon: "R" },
-  { label: "Settings", href: "#settings", icon: "G" },
-];
 
 type DashboardSummary = {
   totalBalanceMinor: number;
@@ -1246,36 +1235,12 @@ function App() {
   }
 
   return (
-    <main className="app-shell">
-      <aside className="sidebar" aria-label="Primary navigation">
-        <div className="brand">
-          <div className="brand-mark">W</div>
-          <div>
-            <strong>Wallet</strong>
-            <span>Local finance</span>
-          </div>
-        </div>
-
-        <nav className="sidebar-nav">
-          {navigationItems.map((item) => (
-            <a key={item.href} href={item.href}>
-              <span aria-hidden="true">{item.icon}</span>
-              {item.label}
-            </a>
-          ))}
-        </nav>
-      </aside>
-
-      <section className="app-workspace">
-        <header className="topbar">
-          <div>
-            <span className="eyebrow">Privacy-first desktop finance</span>
-            <h1>Wallet</h1>
-          </div>
-          <div className="topbar-status">Local data only</div>
-        </header>
-
-        <section className="wallet-panel">
+    <AppLayout
+      eyebrow="Privacy-first desktop finance"
+      navigationItems={navigationItems}
+      status="Local data only"
+      title="Wallet"
+    >
           <section className="list-section" id="dashboard">
           <div className="section-heading">
             <h2>Dashboard</h2>
@@ -2456,9 +2421,7 @@ function App() {
               features have been added yet.
             </p>
           </section>
-        </section>
-      </section>
-    </main>
+    </AppLayout>
   );
 }
 
