@@ -74,6 +74,18 @@ type RecurringFrequency = "daily" | "weekly" | "monthly" | "yearly";
 
 const savingContributionCategoryName = "Saving Contribution";
 
+const navigationItems = [
+  { label: "Dashboard", href: "#dashboard", icon: "D" },
+  { label: "Accounts", href: "#accounts", icon: "A" },
+  { label: "Transactions", href: "#transactions", icon: "T" },
+  { label: "Categories", href: "#categories", icon: "C" },
+  { label: "Budgets", href: "#budgets", icon: "B" },
+  { label: "Bills", href: "#bills", icon: "I" },
+  { label: "Savings Goals", href: "#savings-goals", icon: "S" },
+  { label: "Reports", href: "#reports", icon: "R" },
+  { label: "Settings", href: "#settings", icon: "G" },
+];
+
 type DashboardSummary = {
   totalBalanceMinor: number;
   monthlyIncomeMinor: number;
@@ -1234,11 +1246,37 @@ function App() {
   }
 
   return (
-    <main className="container">
-      <section className="wallet-panel">
-        <h1>Wallet</h1>
+    <main className="app-shell">
+      <aside className="sidebar" aria-label="Primary navigation">
+        <div className="brand">
+          <div className="brand-mark">W</div>
+          <div>
+            <strong>Wallet</strong>
+            <span>Local finance</span>
+          </div>
+        </div>
 
-        <section className="list-section">
+        <nav className="sidebar-nav">
+          {navigationItems.map((item) => (
+            <a key={item.href} href={item.href}>
+              <span aria-hidden="true">{item.icon}</span>
+              {item.label}
+            </a>
+          ))}
+        </nav>
+      </aside>
+
+      <section className="app-workspace">
+        <header className="topbar">
+          <div>
+            <span className="eyebrow">Privacy-first desktop finance</span>
+            <h1>Wallet</h1>
+          </div>
+          <div className="topbar-status">Local data only</div>
+        </header>
+
+        <section className="wallet-panel">
+          <section className="list-section" id="dashboard">
           <div className="section-heading">
             <h2>Dashboard</h2>
             <button
@@ -1475,7 +1513,7 @@ function App() {
 
         {error && <p className="error">{error}</p>}
 
-        <section className="accounts-section">
+        <section className="accounts-section" id="accounts">
           <h2>Accounts</h2>
           {accounts.length === 0 ? (
             <p className="empty">No accounts yet.</p>
@@ -1540,7 +1578,7 @@ function App() {
           )}
         </section>
 
-        <section className="list-section">
+        <section className="list-section" id="categories">
           <h2>Categories</h2>
           {categories.length === 0 ? (
             <p className="empty">No categories yet.</p>
@@ -1611,7 +1649,7 @@ function App() {
           )}
         </section>
 
-        <section className="list-section">
+        <section className="list-section" id="budgets">
           <h2>Budgets</h2>
           <p className="empty">
             Budgets are monthly spending limits. Create expense transactions in
@@ -1788,7 +1826,7 @@ function App() {
           )}
         </section>
 
-        <section className="list-section">
+        <section className="list-section" id="savings-goals">
           <h2>Savings Goals</h2>
           <form className="simple-form" onSubmit={createSavingsGoal}>
             <div className="form-grid">
@@ -1975,7 +2013,7 @@ function App() {
           )}
         </section>
 
-        <section className="list-section">
+        <section className="list-section" id="bills">
           <h2>Recurring Bills</h2>
           <form className="simple-form" onSubmit={createRecurringBill}>
             <div className="form-grid">
@@ -2205,7 +2243,7 @@ function App() {
           )}
         </section>
 
-        <section className="list-section">
+        <section className="list-section" id="transactions">
           <h2>Transactions</h2>
           <form className="simple-form" onSubmit={applyTransactionFilters}>
             <div className="form-grid">
@@ -2401,6 +2439,23 @@ function App() {
               ))}
             </ul>
           )}
+        </section>
+
+          <section className="list-section" id="reports">
+            <h2>Reports</h2>
+            <p className="empty">
+              Reports will use this shell in a future UI pass. No reporting
+              features have been added yet.
+            </p>
+          </section>
+
+          <section className="list-section" id="settings">
+            <h2>Settings</h2>
+            <p className="empty">
+              Settings will use this shell in a future UI pass. No settings
+              features have been added yet.
+            </p>
+          </section>
         </section>
       </section>
     </main>
