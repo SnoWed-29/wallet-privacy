@@ -1,7 +1,9 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { Navigate, Route, Routes } from "react-router-dom";
 import { AppLayout, navigationItems } from "./components/layout";
 import { AppBadge, AppButton, AppCard, EmptyState } from "./components/ui";
+import { TransactionsPage } from "./features/transactions/pages/TransactionsPage";
 import "./styles/globals.css";
 
 type TransactionType = "income" | "expense";
@@ -1242,11 +1244,65 @@ function App() {
       status="Local data only"
       title="Wallet"
     >
+      <Routes>
+        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        <Route
+          path="/dashboard"
+          element={
       <DashboardView
         dashboard={dashboard}
         isLoadingDashboard={isLoadingDashboard}
         onRefresh={loadDashboard}
       />
+          }
+        />
+        <Route
+          path="/transactions"
+          element={
+            <TransactionsPage
+              accountNameFor={accountNameFor}
+              accounts={accounts}
+              categories={categories}
+              categoryNameFor={categoryNameFor}
+              deletingTransactionId={deletingTransactionId}
+              editCategoriesFor={editCategoriesFor}
+              editTransaction={editTransaction}
+              editingTransactionId={editingTransactionId}
+              formatMinor={formatMinor}
+              isFilteringTransactions={isFilteringTransactions}
+              isSavingTransaction={isSavingTransaction}
+              isUpdatingTransaction={isUpdatingTransaction}
+              matchingCategories={matchingCategories}
+              onApplyFilters={applyTransactionFilters}
+              onCancelEditingTransaction={cancelEditingTransaction}
+              onClearFilters={clearTransactionFilters}
+              onCreateTransaction={createTransaction}
+              onDeleteTransaction={deleteTransaction}
+              onStartEditingTransaction={startEditingTransaction}
+              onUpdateEditTransaction={updateEditTransaction}
+              onUpdateTransaction={updateTransaction}
+              onUpdateTransactionFilter={updateTransactionFilter}
+              setTransactionAccountId={setTransactionAccountId}
+              setTransactionAmount={setTransactionAmount}
+              setTransactionCategoryId={setTransactionCategoryId}
+              setTransactionDate={setTransactionDate}
+              setTransactionDescription={setTransactionDescription}
+              setTransactionType={setTransactionType}
+              transactionAccountId={transactionAccountId}
+              transactionAmount={transactionAmount}
+              transactionCategoryId={transactionCategoryId}
+              transactionDate={transactionDate}
+              transactionDescription={transactionDescription}
+              transactionFilters={transactionFilters}
+              transactions={transactions}
+              transactionType={transactionType}
+            />
+          }
+        />
+        <Route
+          path="*"
+          element={
+            <>
 
         <form className="simple-form" onSubmit={createAccount}>
           <label htmlFor="account-name">Account name</label>
@@ -1283,70 +1339,6 @@ function App() {
             </select>
             <button type="submit" disabled={isSavingCategory}>
               {isSavingCategory ? "Creating..." : "Create"}
-            </button>
-          </div>
-        </form>
-
-        <form className="simple-form" onSubmit={createTransaction}>
-          <label htmlFor="transaction-account">Transaction</label>
-          <div className="form-grid">
-            <select
-              id="transaction-account"
-              value={transactionAccountId}
-              onChange={(event) => setTransactionAccountId(event.target.value)}
-            >
-              <option value="">Select account</option>
-              {accounts.map((account) => (
-                <option key={account.id} value={account.id}>
-                  {account.name}
-                </option>
-              ))}
-            </select>
-            <select
-              value={transactionType}
-              onChange={(event) =>
-                setTransactionType(event.target.value as TransactionType)
-              }
-            >
-              <option value="expense">Expense</option>
-              <option value="income">Income</option>
-            </select>
-            <select
-              value={transactionCategoryId}
-              onChange={(event) => setTransactionCategoryId(event.target.value)}
-            >
-              <option value="">Select category</option>
-              {matchingCategories.map((category) => (
-                <option key={category.id} value={category.id}>
-                  {category.name}
-                </option>
-              ))}
-            </select>
-            <input
-              value={transactionAmount}
-              onChange={(event) => setTransactionAmount(event.target.value)}
-              inputMode="decimal"
-              placeholder="Amount"
-            />
-            <input
-              value={transactionDescription}
-              onChange={(event) => setTransactionDescription(event.target.value)}
-              placeholder="Description"
-            />
-            <input
-              type="date"
-              value={transactionDate}
-              onChange={(event) => setTransactionDate(event.target.value)}
-            />
-            <button
-              type="submit"
-              disabled={
-                isSavingTransaction ||
-                accounts.length === 0 ||
-                matchingCategories.length === 0
-              }
-            >
-              {isSavingTransaction ? "Creating..." : "Create transaction"}
             </button>
           </div>
         </form>
@@ -2083,204 +2075,6 @@ function App() {
           )}
         </section>
 
-        <section className="list-section" id="transactions">
-          <h2>Transactions</h2>
-          <form className="simple-form" onSubmit={applyTransactionFilters}>
-            <div className="form-grid">
-              <select
-                value={transactionFilters.accountId}
-                onChange={(event) =>
-                  updateTransactionFilter({ accountId: event.target.value })
-                }
-              >
-                <option value="">All accounts</option>
-                {accounts.map((account) => (
-                  <option key={account.id} value={account.id}>
-                    {account.name}
-                  </option>
-                ))}
-              </select>
-              <select
-                value={transactionFilters.categoryId}
-                onChange={(event) =>
-                  updateTransactionFilter({ categoryId: event.target.value })
-                }
-              >
-                <option value="">All categories</option>
-                {categories.map((category) => (
-                  <option key={category.id} value={category.id}>
-                    {category.name}
-                  </option>
-                ))}
-              </select>
-              <select
-                value={transactionFilters.transactionType}
-                onChange={(event) =>
-                  updateTransactionFilter({
-                    transactionType: event.target.value as TransactionType | "",
-                  })
-                }
-              >
-                <option value="">All types</option>
-                <option value="expense">Expense</option>
-                <option value="income">Income</option>
-              </select>
-              <input
-                type="date"
-                value={transactionFilters.startDate}
-                onChange={(event) =>
-                  updateTransactionFilter({ startDate: event.target.value })
-                }
-              />
-              <input
-                type="date"
-                value={transactionFilters.endDate}
-                onChange={(event) =>
-                  updateTransactionFilter({ endDate: event.target.value })
-                }
-              />
-              <input
-                value={transactionFilters.search}
-                onChange={(event) =>
-                  updateTransactionFilter({ search: event.target.value })
-                }
-                placeholder="Search"
-              />
-              <div className="button-row">
-                <button type="submit" disabled={isFilteringTransactions}>
-                  {isFilteringTransactions ? "Filtering..." : "Apply filters"}
-                </button>
-                <button type="button" onClick={clearTransactionFilters}>
-                  Clear filters
-                </button>
-              </div>
-            </div>
-          </form>
-          {transactions.length === 0 ? (
-            <p className="empty">No transactions yet.</p>
-          ) : (
-            <ul className="simple-list">
-              {transactions.map((transaction) => (
-                <li className="transaction-item" key={transaction.id}>
-                  {editingTransactionId === transaction.id && editTransaction ? (
-                    <form className="edit-form" onSubmit={updateTransaction}>
-                      <select
-                        value={editTransaction.accountId}
-                        onChange={(event) =>
-                          updateEditTransaction({ accountId: event.target.value })
-                        }
-                      >
-                        <option value="">Select account</option>
-                        {accounts.map((account) => (
-                          <option key={account.id} value={account.id}>
-                            {account.name}
-                          </option>
-                        ))}
-                      </select>
-                      <select
-                        value={editTransaction.transactionType}
-                        onChange={(event) => {
-                          const nextType = event.target.value as TransactionType;
-                          const nextCategory =
-                            editCategoriesFor(nextType)[0]?.id ?? "";
-                          updateEditTransaction({
-                            transactionType: nextType,
-                            categoryId: nextCategory,
-                          });
-                        }}
-                      >
-                        <option value="expense">Expense</option>
-                        <option value="income">Income</option>
-                      </select>
-                      <select
-                        value={editTransaction.categoryId}
-                        onChange={(event) =>
-                          updateEditTransaction({ categoryId: event.target.value })
-                        }
-                      >
-                        <option value="">Select category</option>
-                        {editCategoriesFor(editTransaction.transactionType).map(
-                          (category) => (
-                            <option key={category.id} value={category.id}>
-                              {category.name}
-                            </option>
-                          ),
-                        )}
-                      </select>
-                      <input
-                        value={editTransaction.amount}
-                        onChange={(event) =>
-                          updateEditTransaction({ amount: event.target.value })
-                        }
-                        inputMode="decimal"
-                        placeholder="Amount"
-                      />
-                      <input
-                        value={editTransaction.description}
-                        onChange={(event) =>
-                          updateEditTransaction({
-                            description: event.target.value,
-                          })
-                        }
-                        placeholder="Description"
-                      />
-                      <input
-                        type="date"
-                        value={editTransaction.transactionDate}
-                        onChange={(event) =>
-                          updateEditTransaction({
-                            transactionDate: event.target.value,
-                          })
-                        }
-                      />
-                      <div className="button-row">
-                        <button type="submit" disabled={isUpdatingTransaction}>
-                          {isUpdatingTransaction ? "Saving..." : "Save"}
-                        </button>
-                        <button type="button" onClick={cancelEditingTransaction}>
-                          Cancel
-                        </button>
-                      </div>
-                    </form>
-                  ) : (
-                    <>
-                      <div>
-                        <span>
-                          {transaction.description ||
-                            categoryNameFor(transaction.categoryId)}
-                        </span>
-                        <small>
-                          {transaction.transactionDate} -{" "}
-                          {accountNameFor(transaction.accountId)} -{" "}
-                          {transaction.transactionType === "income" ? "+" : "-"}
-                          {formatMinor(transaction.amountMinor)}
-                        </small>
-                      </div>
-                      <div className="button-row">
-                        <button
-                          type="button"
-                          onClick={() => startEditingTransaction(transaction)}
-                        >
-                          Edit
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => deleteTransaction(transaction.id)}
-                          disabled={deletingTransactionId === transaction.id}
-                        >
-                          {deletingTransactionId === transaction.id
-                            ? "Deleting..."
-                            : "Delete"}
-                        </button>
-                      </div>
-                    </>
-                  )}
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
-
           <section className="list-section" id="reports">
             <h2>Reports</h2>
             <p className="empty">
@@ -2296,6 +2090,10 @@ function App() {
               features have been added yet.
             </p>
           </section>
+            </>
+          }
+        />
+      </Routes>
     </AppLayout>
   );
 }

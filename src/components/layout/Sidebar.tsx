@@ -1,4 +1,5 @@
 import { cn } from "../../lib/classNames";
+import { NavLink } from "react-router-dom";
 
 export type NavigationItem = {
   label: string;
@@ -34,16 +35,21 @@ export function Sidebar({ items, className }: SidebarProps) {
 
       <nav className="grid gap-1.5 max-lg:grid-cols-2 max-sm:grid-cols-1">
         {items.map((item) => (
-          <a
+          <NavLink
             key={item.href}
-            className="flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold text-slate-300 no-underline transition hover:translate-x-0.5 hover:bg-white/10 hover:text-white focus-visible:translate-x-0.5 focus-visible:bg-white/10 focus-visible:text-white focus-visible:outline-none"
-            href={item.href}
+            className={({ isActive }) =>
+              cn(
+                "flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold text-slate-300 no-underline transition hover:translate-x-0.5 hover:bg-white/10 hover:text-white focus-visible:translate-x-0.5 focus-visible:bg-white/10 focus-visible:text-white focus-visible:outline-none",
+                isActive && "bg-white/10 text-white",
+              )
+            }
+            to={item.href}
           >
             <span className="grid h-7 w-7 place-items-center rounded-lg bg-white/10 text-xs font-extrabold text-white">
               {item.icon}
             </span>
             {item.label}
-          </a>
+          </NavLink>
         ))}
       </nav>
     </aside>
