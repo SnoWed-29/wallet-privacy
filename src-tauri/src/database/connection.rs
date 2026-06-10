@@ -1,4 +1,4 @@
-use std::str::FromStr;
+use std::{env, path::PathBuf, str::FromStr};
 
 use chrono::Utc;
 use sqlx::sqlite::{SqliteConnectOptions, SqlitePoolOptions};
@@ -9,7 +9,7 @@ use uuid::Uuid;
 use crate::errors::app_error::AppError;
 
 pub async fn initialize_database(app_handle: &AppHandle) -> Result<SqlitePool, AppError> {
-    let app_data_dir = app_handle.path().app_data_dir()?;
+    let app_data_dir = app_data_dir(app_handle)?;
     tokio::fs::create_dir_all(&app_data_dir).await?;
 
     let database_path = app_data_dir.join("wallet.db");
@@ -31,6 +31,16 @@ pub async fn initialize_database(app_handle: &AppHandle) -> Result<SqlitePool, A
     seed_default_categories(&pool).await?;
 
     Ok(pool)
+}
+
+fn app_data_dir(app_handle: &AppHandle) -> Result<PathBuf, AppError> {
+    if env::var("WALLET_TEST_MODE").as_deref() == Ok("true") {
+        return Ok(env::var_os("WALLET_TEST_DATA_DIR")
+            .map(PathBuf::from)
+            .unwrap_or_else(|| env::temp_dir().join("wallet-e2e-test")));
+    }
+
+    Ok(app_handle.path().app_data_dir()?)
 }
 
 async fn seed_default_categories(pool: &SqlitePool) -> Result<(), AppError> {

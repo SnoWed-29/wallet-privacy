@@ -7,16 +7,30 @@ use crate::errors::app_error::AppError;
 
 pub struct RecurringBillRepository;
 
+pub struct RecurringBillWrite {
+    pub name: String,
+    pub account_id: String,
+    pub category_id: String,
+    pub amount_minor: i64,
+    pub frequency: String,
+    pub next_due_date: String,
+    pub description: Option<String>,
+}
+
+pub struct MarkRecurringBillPaid {
+    pub bill_id: String,
+    pub account_id: String,
+    pub category_id: String,
+    pub amount_minor: i64,
+    pub paid_date: String,
+    pub next_due_date: String,
+    pub description: String,
+}
+
 impl RecurringBillRepository {
     pub async fn create(
         pool: &SqlitePool,
-        name: String,
-        account_id: String,
-        category_id: String,
-        amount_minor: i64,
-        frequency: String,
-        next_due_date: String,
-        description: Option<String>,
+        bill: RecurringBillWrite,
     ) -> Result<RecurringBill, AppError> {
         let now = Utc::now().to_rfc3339();
         let id = Uuid::new_v4().to_string();
@@ -41,14 +55,14 @@ impl RecurringBillRepository {
             "#,
         )
         .bind(&id)
-        .bind(name)
-        .bind(account_id)
-        .bind(category_id)
-        .bind(amount_minor)
-        .bind(frequency)
-        .bind(next_due_date)
+        .bind(bill.name)
+        .bind(bill.account_id)
+        .bind(bill.category_id)
+        .bind(bill.amount_minor)
+        .bind(bill.frequency)
+        .bind(bill.next_due_date)
         .bind(Option::<String>::None)
-        .bind(description)
+        .bind(bill.description)
         .bind(false)
         .bind(&now)
         .bind(&now)
@@ -128,13 +142,7 @@ impl RecurringBillRepository {
     pub async fn update(
         pool: &SqlitePool,
         id: String,
-        name: String,
-        account_id: String,
-        category_id: String,
-        amount_minor: i64,
-        frequency: String,
-        next_due_date: String,
-        description: Option<String>,
+        bill: RecurringBillWrite,
     ) -> Result<RecurringBill, AppError> {
         let updated_at = Utc::now().to_rfc3339();
 
@@ -153,13 +161,13 @@ impl RecurringBillRepository {
             WHERE id = ?
             "#,
         )
-        .bind(name)
-        .bind(account_id)
-        .bind(category_id)
-        .bind(amount_minor)
-        .bind(frequency)
-        .bind(next_due_date)
-        .bind(description)
+        .bind(bill.name)
+        .bind(bill.account_id)
+        .bind(bill.category_id)
+        .bind(bill.amount_minor)
+        .bind(bill.frequency)
+        .bind(bill.next_due_date)
+        .bind(bill.description)
         .bind(updated_at)
         .bind(&id)
         .execute(pool)
@@ -191,13 +199,7 @@ impl RecurringBillRepository {
 
     pub async fn mark_paid(
         pool: &SqlitePool,
-        bill_id: &str,
-        account_id: &str,
-        category_id: &str,
-        amount_minor: i64,
-        paid_date: String,
-        next_due_date: String,
-        description: String,
+        payment: MarkRecurringBillPaid,
     ) -> Result<RecurringBill, AppError> {
         let mut transaction = pool.begin().await?;
         let now = Utc::now().to_rfc3339();
@@ -219,12 +221,12 @@ impl RecurringBillRepository {
             "#,
         )
         .bind(Uuid::new_v4().to_string())
-        .bind(account_id)
-        .bind(category_id)
+        .bind(&payment.account_id)
+        .bind(&payment.category_id)
         .bind("expense")
-        .bind(amount_minor)
-        .bind(description)
-        .bind(&paid_date)
+        .bind(payment.amount_minor)
+        .bind(&payment.description)
+        .bind(&payment.paid_date)
         .bind(&now)
         .bind(&now)
         .execute(&mut *transaction)
@@ -240,16 +242,16 @@ impl RecurringBillRepository {
             WHERE id = ?
             "#,
         )
-        .bind(paid_date)
-        .bind(next_due_date)
+        .bind(&payment.paid_date)
+        .bind(&payment.next_due_date)
         .bind(&now)
-        .bind(bill_id)
+        .bind(&payment.bill_id)
         .execute(&mut *transaction)
         .await?;
 
         transaction.commit().await?;
 
-        Self::find_by_id(pool, bill_id)
+        Self::find_by_id(pool, &payment.bill_id)
             .await?
             .ok_or_else(|| AppError::Validation("Recurring bill does not exist.".to_string()))
     }

@@ -7,6 +7,16 @@ use crate::errors::app_error::AppError;
 
 pub struct TransactionRepository;
 
+pub struct TransactionUpdate {
+    pub id: String,
+    pub account_id: String,
+    pub category_id: String,
+    pub transaction_type: String,
+    pub amount_minor: i64,
+    pub description: Option<String>,
+    pub transaction_date: String,
+}
+
 impl TransactionRepository {
     pub async fn create(
         pool: &SqlitePool,
@@ -194,13 +204,7 @@ impl TransactionRepository {
 
     pub async fn update(
         pool: &SqlitePool,
-        id: String,
-        account_id: String,
-        category_id: String,
-        transaction_type: String,
-        amount_minor: i64,
-        description: Option<String>,
-        transaction_date: String,
+        update: TransactionUpdate,
     ) -> Result<Transaction, AppError> {
         let updated_at = Utc::now().to_rfc3339();
 
@@ -218,18 +222,18 @@ impl TransactionRepository {
             WHERE id = ?
             "#,
         )
-        .bind(account_id)
-        .bind(category_id)
-        .bind(transaction_type)
-        .bind(amount_minor)
-        .bind(description)
-        .bind(transaction_date)
+        .bind(update.account_id)
+        .bind(update.category_id)
+        .bind(update.transaction_type)
+        .bind(update.amount_minor)
+        .bind(update.description)
+        .bind(update.transaction_date)
         .bind(updated_at)
-        .bind(&id)
+        .bind(&update.id)
         .execute(pool)
         .await?;
 
-        Self::find_by_id(pool, &id)
+        Self::find_by_id(pool, &update.id)
             .await?
             .ok_or_else(|| AppError::Validation("Transaction does not exist.".to_string()))
     }
