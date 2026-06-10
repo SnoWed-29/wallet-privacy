@@ -55,3 +55,23 @@ cargo fmt --manifest-path src-tauri/Cargo.toml -- --check
 cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings
 cargo test --manifest-path src-tauri/Cargo.toml
 ```
+## Manual Releases
+
+Release builds are created only when a version tag matching `v*` is pushed.
+The release workflow does not change versions or create tags automatically.
+
+Recommended process:
+
+1. Update versions manually in `package.json`, `src-tauri/Cargo.toml`, and
+   `src-tauri/tauri.conf.json` if needed.
+2. Commit the version change:
+   `git commit -m "chore(release): prepare vX.Y.Z"`
+3. Create an annotated tag:
+   `git tag -a vX.Y.Z -m "Wallet vX.Y.Z"`
+4. Push the branch and tag:
+   `git push origin dev`
+   `git push origin vX.Y.Z`
+5. GitHub Actions builds the Windows Tauri app.
+6. A draft GitHub Release is created for the tag.
+7. Inspect the attached installer/artifacts.
+8. Publish the release manually when ready.
