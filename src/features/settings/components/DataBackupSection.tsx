@@ -43,6 +43,21 @@ type ImportPreview = {
   warnings: string[];
 };
 
+type BackupMetadata = {
+  backupVersion: string;
+  createdAt: string;
+  appVersion?: string;
+  dataCounts: ImportEntityCounts;
+};
+
+type BackupPreview = {
+  metadata: BackupMetadata;
+  summary: ImportSummary;
+  duplicates: ImportEntityCounts;
+  conflicts: ImportEntityCounts;
+  warnings: string[];
+};
+
 type ImportResult = {
   mode: ImportMode;
   summary: ImportSummary;
@@ -51,6 +66,12 @@ type ImportResult = {
   duplicates: ImportEntityCounts;
   conflicts: ImportEntityCounts;
   warnings: string[];
+};
+
+type RestoreResult = {
+  restored: ImportResult;
+  safetyBackupJson: string;
+  safetyBackupCreatedAt: string;
 };
 
 type ImportMode = "merge" | "replace";
@@ -65,8 +86,11 @@ function walletExportFileName() {
   return `wallet-export-${new Date().toISOString().slice(0, 10)}.json`;
 }
 
-async function saveJsonFile(json: string) {
-  const suggestedName = walletExportFileName();
+function walletBackupFileName(prefix = "wallet-backup") {
+  return `${prefix}-${new Date().toISOString().slice(0, 10)}.json`;
+}
+
+async function saveJsonFile(json: string, suggestedName: string) {
 
   if (window.showSaveFilePicker) {
     const handle = await window.showSaveFilePicker({
@@ -110,6 +134,7 @@ function errorMessage(error: unknown) {
 export function DataBackupSection() {
   const toast = useToast();
   const [isExporting, setIsExporting] = useState(false);
+  const [isCreatingBackup, setIsCreatingBackup] = useState(false);
   const [isValidatingImport, setIsValidatingImport] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [importJson, setImportJson] = useState("");
@@ -119,6 +144,14 @@ export function DataBackupSection() {
   const [selectedImportMode, setSelectedImportMode] = useState<ImportMode>("merge");
   const [isConfirmingImport, setIsConfirmingImport] = useState(false);
   const [replaceConfirmation, setReplaceConfirmation] = useState("");
+  const [isValidatingBackup, setIsValidatingBackup] = useState(false);
+  const [isRestoringBackup, setIsRestoringBackup] = useState(false);
+  const [backupJson, setBackupJson] = useState("");
+  const [backupFileName, setBackupFileName] = useState("");
+  const [backupPreview, setBackupPreview] = useState<BackupPreview | null>(null);
+  const [restoreResult, setRestoreResult] = useState<RestoreResult | null>(null);
+  const [isConfirmingRestore, setIsConfirmingRestore] = useState(false);
+  const [restoreConfirmation, setRestoreConfirmation] = useState("");
 
   async function handleExportWalletData() {
     setIsExporting(true);
@@ -126,12 +159,27 @@ export function DataBackupSection() {
     try {
       const json = await invoke<string>("export_wallet_data");
       JSON.parse(json);
-      await saveJsonFile(json);
+      await saveJsonFile(json, walletExportFileName());
       toast.success("Wallet data was exported to a JSON file.", "Export complete");
     } catch (error) {
       toast.error(errorMessage(error), "Export failed");
     } finally {
       setIsExporting(false);
+    }
+  }
+
+  async function handleCreateBackup() {
+    setIsCreatingBackup(true);
+
+    try {
+      const json = await invoke<string>("create_wallet_backup");
+      JSON.parse(json);
+      await saveJsonFile(json, walletBackupFileName());
+      toast.success("Wallet backup was saved as a JSON file.", "Backup complete");
+    } catch (error) {
+      toast.error(errorMessage(error), "Backup failed");
+    } finally {
+      setIsCreatingBackup(false);
     }
   }
 
@@ -161,6 +209,35 @@ export function DataBackupSection() {
       event.target.value = "";
     } finally {
       setIsValidatingImport(false);
+    }
+  }
+
+  async function handleBackupFileSelected(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    setBackupJson("");
+    setBackupFileName("");
+    setBackupPreview(null);
+    setRestoreResult(null);
+    setRestoreConfirmation("");
+
+    if (!file) {
+      return;
+    }
+
+    setIsValidatingBackup(true);
+
+    try {
+      const json = await file.text();
+      const preview = await invoke<BackupPreview>("validate_backup_file", { json });
+      setBackupJson(json);
+      setBackupFileName(file.name);
+      setBackupPreview(preview);
+      toast.success("Backup file is valid. Review the restore preview before continuing.", "Backup ready");
+    } catch (error) {
+      toast.error(errorMessage(error), "Backup validation failed");
+      event.target.value = "";
+    } finally {
+      setIsValidatingBackup(false);
     }
   }
 
@@ -203,9 +280,56 @@ export function DataBackupSection() {
     }
   }
 
+  async function handleRestoreBackup() {
+    if (!backupJson) {
+      toast.error("Select and validate a Wallet backup first.", "Restore failed");
+      return;
+    }
+
+    if (restoreConfirmation !== "RESTORE") {
+      toast.error("Type RESTORE to confirm backup restore.", "Confirmation required");
+      return;
+    }
+
+    setIsRestoringBackup(true);
+
+    try {
+      const result = await invoke<RestoreResult>("restore_wallet_backup", {
+        json: backupJson,
+      });
+      const restoredCount = totalCounts(result.restored.imported);
+      toast.success(
+        `Restored ${restoredCount} records. A safety backup was created first.`,
+        "Restore complete",
+      );
+      setRestoreResult(result);
+      setIsConfirmingRestore(false);
+    } catch (error) {
+      toast.error(errorMessage(error), "Restore failed");
+    } finally {
+      setIsRestoringBackup(false);
+    }
+  }
+
+  async function handleSaveSafetyBackup() {
+    if (!restoreResult) {
+      return;
+    }
+
+    try {
+      await saveJsonFile(
+        restoreResult.safetyBackupJson,
+        walletBackupFileName("wallet-safety-backup"),
+      );
+      toast.success("Safety backup was saved.", "Safety backup saved");
+    } catch (error) {
+      toast.error(errorMessage(error), "Safety backup save failed");
+    }
+  }
+
   return (
     <AppCard
-      description="Create a local JSON backup of your wallet data. Import, restore, encryption, cloud storage, and CSV export are not part of this first version."
+      description="Export data for portability, import data into this wallet, create safety backups, or restore from a backup when you need to replace current data."
       title="Data & Backup"
       actions={<AppBadge variant="success">Local JSON</AppBadge>}
     >
@@ -340,6 +464,138 @@ export function DataBackupSection() {
           </div>
         </div>
 
+        <div className="rounded-app-sm border border-app-border bg-slate-50/70 p-4">
+          <div className="flex items-start justify-between gap-4 max-sm:flex-col">
+            <div>
+              <h3 className="m-0 text-base font-extrabold normal-case tracking-normal text-app-text">
+                Create Backup
+              </h3>
+              <p className="mt-1 text-sm leading-relaxed text-app-muted">
+                Create a safety copy of all Wallet data with backup metadata,
+                app version when available, and record counts.
+              </p>
+              <p className="mt-1 text-sm text-app-muted">
+                Suggested filename: {walletBackupFileName()}
+              </p>
+            </div>
+            <AppButton
+              className="gap-2 whitespace-nowrap"
+              disabled={isCreatingBackup}
+              onClick={handleCreateBackup}
+              variant="primary"
+            >
+              <Download className="h-4 w-4" aria-hidden="true" />
+              {isCreatingBackup ? "Creating..." : "Create Backup"}
+            </AppButton>
+          </div>
+        </div>
+
+        <div className="rounded-app-sm border border-red-200 bg-red-50/60 p-4">
+          <div className="grid gap-4">
+            <div className="flex items-start justify-between gap-4 max-sm:flex-col">
+              <div>
+                <h3 className="m-0 text-base font-extrabold normal-case tracking-normal text-red-950">
+                  Restore Backup
+                </h3>
+                <p className="mt-1 text-sm leading-relaxed text-red-900">
+                  Select a Wallet backup JSON file, validate it, review the
+                  restore preview, then explicitly confirm replacement.
+                </p>
+              </div>
+              <AppBadge variant="expense">Replace-only</AppBadge>
+            </div>
+
+            <p className="rounded-app-sm border border-red-300 bg-white p-3 text-sm font-extrabold text-red-800">
+              Restoring a backup will replace your current Wallet data.
+            </p>
+
+            <label className="grid gap-2">
+              <span className="text-sm font-extrabold text-slate-700">
+                Wallet backup JSON file
+              </span>
+              <AppInput
+                accept="application/json,.json"
+                disabled={isValidatingBackup || isRestoringBackup}
+                onChange={handleBackupFileSelected}
+                type="file"
+              />
+            </label>
+
+            {isValidatingBackup ? (
+              <p className="text-sm font-extrabold text-app-muted">Validating backup file...</p>
+            ) : null}
+
+            {backupPreview ? (
+              <div className="grid gap-3">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <p className="font-extrabold text-app-text">{backupFileName}</p>
+                    <p className="text-sm text-app-muted">
+                      Backup version {backupPreview.metadata.backupVersion}, created{" "}
+                      {backupPreview.metadata.createdAt}
+                      {backupPreview.metadata.appVersion
+                        ? `, app ${backupPreview.metadata.appVersion}`
+                        : ""}
+                    </p>
+                  </div>
+                  <AppButton
+                    className="gap-2 whitespace-nowrap"
+                    disabled={isRestoringBackup}
+                    onClick={() => {
+                      setRestoreConfirmation("");
+                      setIsConfirmingRestore(true);
+                    }}
+                    variant="danger"
+                  >
+                    <Upload className="h-4 w-4" aria-hidden="true" />
+                    Restore Backup
+                  </AppButton>
+                </div>
+
+                <div className="grid grid-cols-3 gap-3 text-sm max-lg:grid-cols-2 max-sm:grid-cols-1">
+                  <SummaryItem label="Accounts" value={backupPreview.summary.accounts} />
+                  <SummaryItem label="Categories" value={backupPreview.summary.categories} />
+                  <SummaryItem label="Transactions" value={backupPreview.summary.transactions} />
+                  <SummaryItem label="Budgets" value={backupPreview.summary.budgets} />
+                  <SummaryItem
+                    label="Recurring Bills"
+                    value={backupPreview.summary.recurringBills}
+                  />
+                  <SummaryItem label="Savings Goals" value={backupPreview.summary.savingsGoals} />
+                </div>
+
+                {backupPreview.warnings.length ? (
+                  <div className="rounded-app-sm border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+                    <p className="font-extrabold">Warnings</p>
+                    <ul className="mt-2 list-disc space-y-1 pl-5">
+                      {backupPreview.warnings.map((warning) => (
+                        <li key={warning}>{warning}</li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
+
+            {restoreResult ? (
+              <div className="rounded-app-sm border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">
+                <p className="font-extrabold">Restore summary</p>
+                <p className="mt-1">
+                  Restored {totalCounts(restoreResult.restored.imported)} records from the backup.
+                  A safety backup was created first at {restoreResult.safetyBackupCreatedAt}.
+                </p>
+                <AppButton
+                  className="mt-3"
+                  onClick={handleSaveSafetyBackup}
+                  variant="secondary"
+                >
+                  Save safety backup
+                </AppButton>
+              </div>
+            ) : null}
+          </div>
+        </div>
+
         <div className="grid grid-cols-3 gap-3 text-sm max-lg:grid-cols-1">
           <div className="rounded-app-sm border border-app-border bg-white p-3">
             <p className="font-extrabold text-app-text">Included</p>
@@ -416,6 +672,54 @@ export function DataBackupSection() {
                 : selectedImportMode === "replace"
                   ? "Replace current data"
                   : "Merge import"}
+            </AppButton>
+          </div>
+        </div>
+      </AppModal>
+
+      <AppModal
+        description="This restore is replace-only. Wallet will not merge backup data with current data."
+        onClose={() => {
+          setIsConfirmingRestore(false);
+          setRestoreConfirmation("");
+        }}
+        open={isConfirmingRestore}
+        title="Confirm backup restore"
+      >
+        <div className="grid gap-4">
+          <p className="rounded-app-sm border border-red-300 bg-red-50 p-3 text-sm font-extrabold text-red-800">
+            Restoring a backup will replace your current Wallet data.
+          </p>
+          <p className="text-sm leading-relaxed text-app-muted">
+            Wallet will create a safety backup of the current data first, then
+            replace current records with the validated backup contents.
+          </p>
+          <label className="grid gap-2">
+            <span className="text-sm font-extrabold text-red-700">
+              Type RESTORE to confirm backup restore
+            </span>
+            <AppInput
+              value={restoreConfirmation}
+              onChange={(event) => setRestoreConfirmation(event.target.value)}
+            />
+          </label>
+          <div className="flex justify-end gap-3">
+            <AppButton
+              disabled={isRestoringBackup}
+              onClick={() => {
+                setIsConfirmingRestore(false);
+                setRestoreConfirmation("");
+              }}
+              variant="ghost"
+            >
+              Cancel
+            </AppButton>
+            <AppButton
+              disabled={isRestoringBackup || restoreConfirmation !== "RESTORE"}
+              onClick={handleRestoreBackup}
+              variant="danger"
+            >
+              {isRestoringBackup ? "Restoring..." : "Replace current data"}
             </AppButton>
           </div>
         </div>
