@@ -33,6 +33,57 @@ This version does not include:
 7. The frontend opens a save dialog when supported and writes the JSON file.
 8. The app shows a success or error notification.
 
+## Import Flow
+
+Wallet can also import a JSON file that follows the Wallet export format.
+
+1. The user opens `Settings -> Data & Backup`.
+2. The user selects a `.json` file in the `Import Data` section.
+3. The frontend sends the file contents to:
+
+   ```text
+   validate_import_file
+   ```
+
+4. The backend validates JSON syntax, export version, required properties, data
+   types, and basic entity rules.
+5. If validation succeeds, the UI displays a summary of the file contents.
+6. The user clicks `Import Data`.
+7. The app shows a confirmation modal explaining that the action may modify
+   current data.
+8. After confirmation, the frontend calls:
+
+   ```text
+   import_wallet_data
+   ```
+
+9. The backend validates the file again, checks references, and imports missing
+   records.
+10. The app shows a success or error notification.
+
+## Import Strategy
+
+The current import behavior is a merge import.
+
+It does:
+
+- Add records from the import file when their IDs do not already exist.
+- Preserve existing records.
+- Skip records that already exist.
+- Import in dependency order: accounts, categories, transactions, budgets,
+  recurring bills, then savings goals.
+- Run the database writes inside one transaction so invalid imports cannot
+  partially apply.
+
+It does not:
+
+- Delete existing data.
+- Replace the database.
+- Overwrite existing records.
+- Restore the app to an exact snapshot.
+
+A future restore phase may add stricter full-database replacement behavior.
+
 ## Export Format
 
 The exported file is JSON with this top-level structure:
@@ -86,3 +137,4 @@ Use this strategy:
 
 Future import code should inspect `version` before attempting to import a file.
 
+The first import implementation accepts only export version `1.0`.

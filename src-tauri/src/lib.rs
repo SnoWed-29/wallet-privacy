@@ -36,6 +36,8 @@ pub fn run() {
             commands::categories::list_categories,
             commands::dashboard::get_dashboard_summary,
             commands::export::export_wallet_data,
+            commands::r#import::validate_import_file,
+            commands::r#import::import_wallet_data,
             commands::recurring_bills::create_recurring_bill,
             commands::recurring_bills::list_recurring_bills,
             commands::recurring_bills::update_recurring_bill,

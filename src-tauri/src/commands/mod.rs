@@ -3,6 +3,7 @@ pub mod budgets;
 pub mod categories;
 pub mod dashboard;
 pub mod export;
+pub mod r#import;
 pub mod recurring_bills;
 pub mod savings_goals;
 pub mod transactions;
