@@ -1,5 +1,6 @@
 import { AppBadge, AppButton, AppCard, AppInput, AppSelect, EmptyState } from "../../../components/ui";
 import { PageIntro } from "../../../components/layout/PageIntro";
+import { DataBackupSection } from "../components/DataBackupSection";
 
 export function SettingsPage() {
   return (
@@ -44,10 +45,10 @@ export function SettingsPage() {
           </div>
         </AppCard>
 
-        <AppCard
-          description="Wallet is designed around local-first privacy. Backup, export, and import workflows are intentionally not wired yet."
-          title="Data & Privacy"
-        >
+        <AppCard
+          description="Wallet is designed around local-first privacy. Cloud sync and import workflows are intentionally not wired yet."
+          title="Data & Privacy"
+        >
           <div className="grid gap-3">
             <div className="rounded-xl border border-app-border bg-slate-50/70 p-4">
               <div className="flex items-start justify-between gap-3">
@@ -64,22 +65,29 @@ export function SettingsPage() {
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3 max-sm:grid-cols-1">
-              <AppButton disabled variant="ghost">
-                Backup / Export
-              </AppButton>
+              <AppButton
+                variant="ghost"
+                onClick={() => document.getElementById("data-backup")?.scrollIntoView()}
+              >
+                Data & Backup
+              </AppButton>
               <AppButton disabled variant="ghost">
                 Import data
               </AppButton>
             </div>
-            <EmptyState title="Backup and import are placeholders.">
-              These actions will remain disabled until explicit data tools are
-              designed and implemented.
-            </EmptyState>
-          </div>
-        </AppCard>
-      </div>
-
-      <AppCard
+            <EmptyState title="Import is a placeholder.">
+              Export is available in Data & Backup. Import and restore remain
+              disabled until those workflows are designed and implemented.
+            </EmptyState>
+          </div>
+        </AppCard>
+      </div>
+
+      <div id="data-backup">
+        <DataBackupSection />
+      </div>
+
+      <AppCard
         description="Visual preferences for the redesigned app shell. Theme persistence is not implemented yet."
         title="Appearance"
       >
