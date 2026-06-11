@@ -22,30 +22,38 @@ type SaveFilePickerOptions = {
   }>;
 };
 
-type ImportSummary = {
-  version: string;
-  exportedAt: string;
+type ImportEntityCounts = {
   accounts: number;
   categories: number;
   transactions: number;
   budgets: number;
   recurringBills: number;
   savingsGoals: number;
+};
+
+type ImportSummary = ImportEntityCounts & {
+  version: string;
+  exportedAt: string;
+};
+
+type ImportPreview = {
+  summary: ImportSummary;
+  duplicates: ImportEntityCounts;
+  conflicts: ImportEntityCounts;
+  warnings: string[];
 };
 
 type ImportResult = {
-  imported: ImportSummaryCounts;
-  skipped: ImportSummaryCounts;
+  mode: ImportMode;
+  summary: ImportSummary;
+  imported: ImportEntityCounts;
+  skipped: ImportEntityCounts;
+  duplicates: ImportEntityCounts;
+  conflicts: ImportEntityCounts;
+  warnings: string[];
 };
 
-type ImportSummaryCounts = {
-  accounts: number;
-  categories: number;
-  transactions: number;
-  budgets: number;
-  recurringBills: number;
-  savingsGoals: number;
-};
+type ImportMode = "merge" | "replace";
 
 declare global {
   interface Window {
@@ -106,8 +114,11 @@ export function DataBackupSection() {
   const [isImporting, setIsImporting] = useState(false);
   const [importJson, setImportJson] = useState("");
   const [importFileName, setImportFileName] = useState("");
-  const [importSummary, setImportSummary] = useState<ImportSummary | null>(null);
+  const [importPreview, setImportPreview] = useState<ImportPreview | null>(null);
+  const [importResult, setImportResult] = useState<ImportResult | null>(null);
+  const [selectedImportMode, setSelectedImportMode] = useState<ImportMode>("merge");
   const [isConfirmingImport, setIsConfirmingImport] = useState(false);
+  const [replaceConfirmation, setReplaceConfirmation] = useState("");
 
   async function handleExportWalletData() {
     setIsExporting(true);
@@ -128,7 +139,9 @@ export function DataBackupSection() {
     const file = event.target.files?.[0];
     setImportJson("");
     setImportFileName("");
-    setImportSummary(null);
+    setImportPreview(null);
+    setImportResult(null);
+    setReplaceConfirmation("");
 
     if (!file) {
       return;
@@ -138,10 +151,10 @@ export function DataBackupSection() {
 
     try {
       const json = await file.text();
-      const summary = await invoke<ImportSummary>("validate_import_file", { json });
+      const preview = await invoke<ImportPreview>("validate_import_file", { json });
       setImportJson(json);
       setImportFileName(file.name);
-      setImportSummary(summary);
+      setImportPreview(preview);
       toast.success("Import file is valid. Review the summary before importing.", "Import ready");
     } catch (error) {
       toast.error(errorMessage(error), "Import validation failed");
@@ -151,25 +164,37 @@ export function DataBackupSection() {
     }
   }
 
+  function openImportConfirmation(mode: ImportMode) {
+    setSelectedImportMode(mode);
+    setReplaceConfirmation("");
+    setIsConfirmingImport(true);
+  }
+
   async function handleImportWalletData() {
     if (!importJson) {
       toast.error("Select and validate a Wallet JSON export first.", "Import failed");
       return;
     }
 
+    if (selectedImportMode === "replace" && replaceConfirmation !== "REPLACE") {
+      toast.error("Type REPLACE to confirm restore.", "Confirmation required");
+      return;
+    }
+
     setIsImporting(true);
 
     try {
-      const result = await invoke<ImportResult>("import_wallet_data", { json: importJson });
-      const importedCount = Object.values(result.imported).reduce(
-        (total, count) => total + count,
-        0,
-      );
+      const result = await invoke<ImportResult>("import_wallet_data", {
+        json: importJson,
+        mode: selectedImportMode,
+      });
+      const importedCount = totalCounts(result.imported);
       const skippedCount = Object.values(result.skipped).reduce((total, count) => total + count, 0);
       toast.success(
-        `Imported ${importedCount} records. Skipped ${skippedCount} records that already existed.`,
-        "Import complete",
+        `${selectedImportMode === "replace" ? "Restored" : "Imported"} ${importedCount} records. Skipped ${skippedCount}.`,
+        selectedImportMode === "replace" ? "Restore complete" : "Import complete",
       );
+      setImportResult(result);
       setIsConfirmingImport(false);
     } catch (error) {
       toast.error(errorMessage(error), "Import failed");
@@ -240,34 +265,76 @@ export function DataBackupSection() {
               <p className="text-sm font-extrabold text-app-muted">Validating import file...</p>
             ) : null}
 
-            {importSummary ? (
+            {importPreview ? (
               <div className="grid gap-3">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <p className="font-extrabold text-app-text">{importFileName}</p>
                     <p className="text-sm text-app-muted">
-                      Export version {importSummary.version}, created {importSummary.exportedAt}
+                      Export version {importPreview.summary.version}, created{" "}
+                      {importPreview.summary.exportedAt}
                     </p>
                   </div>
-                  <AppButton
-                    className="gap-2 whitespace-nowrap"
-                    disabled={isImporting}
-                    onClick={() => setIsConfirmingImport(true)}
-                    variant="secondary"
-                  >
-                    <Upload className="h-4 w-4" aria-hidden="true" />
-                    Import Data
-                  </AppButton>
+                  <div className="flex flex-wrap gap-2">
+                    <AppButton
+                      className="gap-2 whitespace-nowrap"
+                      disabled={isImporting}
+                      onClick={() => openImportConfirmation("merge")}
+                      variant="secondary"
+                    >
+                      <Upload className="h-4 w-4" aria-hidden="true" />
+                      Merge with current data
+                    </AppButton>
+                    <AppButton
+                      className="gap-2 whitespace-nowrap"
+                      disabled={isImporting}
+                      onClick={() => openImportConfirmation("replace")}
+                      variant="danger"
+                    >
+                      Restore from file
+                    </AppButton>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-3 gap-3 text-sm max-lg:grid-cols-2 max-sm:grid-cols-1">
-                  <SummaryItem label="Accounts" value={importSummary.accounts} />
-                  <SummaryItem label="Categories" value={importSummary.categories} />
-                  <SummaryItem label="Transactions" value={importSummary.transactions} />
-                  <SummaryItem label="Budgets" value={importSummary.budgets} />
-                  <SummaryItem label="Recurring Bills" value={importSummary.recurringBills} />
-                  <SummaryItem label="Savings Goals" value={importSummary.savingsGoals} />
+                  <SummaryItem label="Accounts" value={importPreview.summary.accounts} />
+                  <SummaryItem label="Categories" value={importPreview.summary.categories} />
+                  <SummaryItem label="Transactions" value={importPreview.summary.transactions} />
+                  <SummaryItem label="Budgets" value={importPreview.summary.budgets} />
+                  <SummaryItem
+                    label="Recurring Bills"
+                    value={importPreview.summary.recurringBills}
+                  />
+                  <SummaryItem label="Savings Goals" value={importPreview.summary.savingsGoals} />
                 </div>
+
+                <div className="grid grid-cols-2 gap-3 text-sm max-lg:grid-cols-1">
+                  <SummaryPanel title="Detected duplicates" counts={importPreview.duplicates} />
+                  <SummaryPanel title="Detected conflicts" counts={importPreview.conflicts} />
+                </div>
+
+                {importPreview.warnings.length ? (
+                  <div className="rounded-app-sm border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+                    <p className="font-extrabold">Warnings</p>
+                    <ul className="mt-2 list-disc space-y-1 pl-5">
+                      {importPreview.warnings.map((warning) => (
+                        <li key={warning}>{warning}</li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
+
+            {importResult ? (
+              <div className="rounded-app-sm border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">
+                <p className="font-extrabold">
+                  {importResult.mode === "replace" ? "Restore result" : "Import result"}
+                </p>
+                <p className="mt-1">
+                  Imported {totalCounts(importResult.imported)} records. Skipped{" "}
+                  {totalCounts(importResult.skipped)} duplicates or handled conflicts.
+                </p>
               </div>
             ) : null}
           </div>
@@ -296,32 +363,69 @@ export function DataBackupSection() {
       </div>
 
       <AppModal
-        description="This action may modify your current data."
-        onClose={() => setIsConfirmingImport(false)}
+        description={
+          selectedImportMode === "replace"
+            ? "This will replace your current Wallet data with the selected file. Your current data may be lost."
+            : "Imported data will be added to your current Wallet data. Existing data will stay."
+        }
+        onClose={() => {
+          setIsConfirmingImport(false);
+          setReplaceConfirmation("");
+        }}
         open={isConfirmingImport}
-        title="Confirm import"
+        title={selectedImportMode === "replace" ? "Confirm restore" : "Confirm merge import"}
       >
         <div className="grid gap-4">
           <p className="text-sm leading-relaxed text-app-muted">
-            Wallet will merge records from the selected export file. Existing
-            records with the same IDs are preserved and skipped.
+            {selectedImportMode === "replace"
+              ? "Restore is destructive. Wallet will clear current finance data, then import records from the selected file."
+              : "Duplicates may be skipped and conflicts may be renamed or reported. Existing records are not deleted."}
           </p>
+          {selectedImportMode === "replace" ? (
+            <label className="grid gap-2">
+              <span className="text-sm font-extrabold text-red-700">
+                Type REPLACE to confirm restore
+              </span>
+              <AppInput
+                value={replaceConfirmation}
+                onChange={(event) => setReplaceConfirmation(event.target.value)}
+              />
+            </label>
+          ) : null}
           <div className="flex justify-end gap-3">
             <AppButton
               disabled={isImporting}
-              onClick={() => setIsConfirmingImport(false)}
+              onClick={() => {
+                setIsConfirmingImport(false);
+                setReplaceConfirmation("");
+              }}
               variant="ghost"
             >
               Cancel
             </AppButton>
-            <AppButton disabled={isImporting} onClick={handleImportWalletData} variant="primary">
-              {isImporting ? "Importing..." : "Import Data"}
+            <AppButton
+              disabled={
+                isImporting ||
+                (selectedImportMode === "replace" && replaceConfirmation !== "REPLACE")
+              }
+              onClick={handleImportWalletData}
+              variant={selectedImportMode === "replace" ? "danger" : "primary"}
+            >
+              {isImporting
+                ? "Working..."
+                : selectedImportMode === "replace"
+                  ? "Replace current data"
+                  : "Merge import"}
             </AppButton>
           </div>
         </div>
       </AppModal>
     </AppCard>
   );
+}
+
+function totalCounts(counts: ImportEntityCounts) {
+  return Object.values(counts).reduce((total, count) => total + count, 0);
 }
 
 function SummaryItem({ label, value }: { label: string; value: number }) {
@@ -331,6 +435,18 @@ function SummaryItem({ label, value }: { label: string; value: number }) {
         {label}
       </p>
       <p className="mt-1 text-xl font-extrabold text-app-text">{value}</p>
+    </div>
+  );
+}
+
+function SummaryPanel({ title, counts }: { title: string; counts: ImportEntityCounts }) {
+  return (
+    <div className="rounded-app-sm border border-app-border bg-white p-3">
+      <p className="font-extrabold text-app-text">{title}</p>
+      <p className="mt-1 text-sm text-app-muted">
+        {totalCounts(counts)} total across accounts, categories, transactions,
+        budgets, recurring bills, and savings goals.
+      </p>
     </div>
   );
 }

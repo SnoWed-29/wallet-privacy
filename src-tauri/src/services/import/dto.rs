@@ -1,5 +1,12 @@
 use serde::{Deserialize, Serialize};
 
+#[derive(Debug, Clone, Copy, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub enum ImportMode {
+    Merge,
+    Replace,
+}
+
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct WalletImport {
@@ -123,10 +130,23 @@ pub struct ImportEntityCounts {
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
+pub struct ImportPreview {
+    pub summary: ImportSummary,
+    pub duplicates: ImportEntityCounts,
+    pub conflicts: ImportEntityCounts,
+    pub warnings: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ImportResult {
+    pub mode: String,
     pub summary: ImportSummary,
     pub imported: ImportEntityCounts,
     pub skipped: ImportEntityCounts,
+    pub duplicates: ImportEntityCounts,
+    pub conflicts: ImportEntityCounts,
+    pub warnings: Vec<String>,
 }
 
 impl WalletImport {
