@@ -44,6 +44,18 @@ CI checks:
   and `cargo test --manifest-path src-tauri/Cargo.toml`
 - Tauri: Linux build validation with the required Tauri system dependencies
 
+## CodeQL Security Scanning
+
+GitHub CodeQL runs static analysis against the JavaScript/TypeScript frontend
+and Rust backend to look for security vulnerabilities and code quality issues.
+It runs on pushes to `dev`/`main`, pull requests targeting `dev`/`main`, and a
+weekly scheduled scan.
+
+CodeQL results appear in GitHub under the repository's Security tab in code
+scanning alerts, and any relevant pull request annotations are shown in the PR.
+CodeQL is a static analysis tool; it complements tests and manual review, but
+does not replace either one.
+
 Run the same core checks locally with:
 
 ```bash
@@ -55,6 +67,7 @@ cargo fmt --manifest-path src-tauri/Cargo.toml -- --check
 cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings
 cargo test --manifest-path src-tauri/Cargo.toml
 ```
+
 ## Manual Releases
 
 Release builds are created only when a version tag matching `v*` is pushed.
