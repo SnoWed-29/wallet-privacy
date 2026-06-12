@@ -104,8 +104,9 @@ const [accountName, setAccountName] = useState("");
   const [contributingSavingsGoalId, setContributingSavingsGoalId] = useState("");
   const [payingRecurringBillId, setPayingRecurringBillId] = useState("");
   const [deletingTransactionId, setDeletingTransactionId] = useState("");
-  const [isFilteringTransactions, setIsFilteringTransactions] = useState(false);
-  const [isLoadingDashboard, setIsLoadingDashboard] = useState(false);
+  const [isFilteringTransactions, setIsFilteringTransactions] = useState(false);
+  const [isLoadingDashboard, setIsLoadingDashboard] = useState(false);
+  const [isBootstrapping, setIsBootstrapping] = useState(true);
 
   function showError(err: unknown) {
     console.error(err);
@@ -206,7 +207,7 @@ const [accountName, setAccountName] = useState("");
     }
   }
 
-  async function loadDashboard() {
+  async function loadDashboard() {
     setIsLoadingDashboard(true);
 
     try {
@@ -217,17 +218,23 @@ const [accountName, setAccountName] = useState("");
     } finally {
       setIsLoadingDashboard(false);
     }
-  }
-
-  useEffect(() => {
-    loadAccounts();
-    loadCategories();
-    loadTransactions();
-    loadBudgets();
-    loadSavingsGoals();
-    loadRecurringBills();
-    loadDashboard();
-  }, []);
+  }
+
+  async function reloadWalletData() {
+    await Promise.all([
+      loadAccounts(),
+      loadCategories(),
+      loadTransactions(),
+      loadBudgets(),
+      loadSavingsGoals(),
+      loadRecurringBills(),
+      loadDashboard(),
+    ]);
+  }
+
+  useEffect(() => {
+    reloadWalletData().finally(() => setIsBootstrapping(false));
+  }, []);
 
   useEffect(() => {
     if (!transactionAccountId && accounts.length > 0) {
@@ -1221,11 +1228,13 @@ const [accountName, setAccountName] = useState("");
     contributingSavingsGoalId,
     payingRecurringBillId,
     deletingTransactionId,
-    isFilteringTransactions,
-    isLoadingDashboard,
+    isFilteringTransactions,
+    isLoadingDashboard,
+    isBootstrapping,
     matchingCategories,
     expenseCategories,
-    loadDashboard,
+    loadDashboard,
+    reloadWalletData,
     createAccount,
     createCategory,
     createTransaction,

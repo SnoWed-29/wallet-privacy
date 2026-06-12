@@ -2,6 +2,18 @@
 @tailwind components;
 @tailwind utilities;
 
+@keyframes walletStepIn {
+  from {
+    opacity: 0;
+    transform: translateY(0.5rem);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 @layer base {
   :root {
     color: theme("colors.app.text");
@@ -80,7 +92,7 @@
   }
 
   button {
-    @apply inline-flex min-h-10 cursor-pointer items-center justify-center rounded-app-sm border border-slate-900 bg-slate-900 px-4 py-2 text-sm font-extrabold text-white shadow-[0_10px_22px_rgba(17,24,39,0.14)] transition hover:-translate-y-px hover:border-slate-700 hover:bg-slate-700 hover:shadow-app-soft active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0;
+    @apply inline-flex min-h-10 cursor-pointer items-center justify-center rounded-app-sm border border-slate-900 bg-slate-900 px-4 py-2 text-sm font-extrabold text-white shadow-[0_10px_22px_rgba(17,24,39,0.14)] transition hover:-translate-y-px hover:border-slate-700 hover:bg-slate-700 hover:shadow-app-soft focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-500/20 active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0;
   }
 
   .button-row {
