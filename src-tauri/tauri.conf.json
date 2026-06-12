@@ -13,10 +13,13 @@
     "windows": [
       {
         "title": "wallet",
-        "width": 1280,
-        "height": 720,
-        "minWidth": 1024,
-        "minHeight": 640
+        "width": 1440,
+        "height": 900,
+        "minWidth": 1180,
+        "minHeight": 720,
+        "resizable": true,
+        "maximizable": true,
+        "center": true
       }
     ],
     "security": {

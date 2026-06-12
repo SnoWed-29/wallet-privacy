@@ -1,6 +1,7 @@
-import { AppBadge, AppCard, AppInput, AppSelect, EmptyState } from "../../../components/ui";
+import { AppBadge, AppButton, AppCard, AppInput, AppSelect, EmptyState } from "../../../components/ui";
 import { PageIntro } from "../../../components/layout/PageIntro";
 import { DataBackupSection } from "../components/DataBackupSection";
+import { setOnboardingCompleted } from "../../onboarding/utils/onboarding.utils";
 
 export function SettingsPage() {
   return (
@@ -81,6 +82,14 @@ export function SettingsPage() {
             <div className="grid grid-cols-2 gap-3 text-sm max-sm:grid-cols-1">
               <InfoBlock label="Privacy" text="Your data stays local to the desktop app." />
               <InfoBlock label="Storage" text="Exports and backups are saved only where you choose." />
+            </div>
+            <div className="mt-4 flex justify-end">
+              <AppButton
+                onClick={() => setOnboardingCompleted(false)}
+                variant="ghost"
+              >
+                Restart onboarding
+              </AppButton>
             </div>
           </AppCard>
         </div>

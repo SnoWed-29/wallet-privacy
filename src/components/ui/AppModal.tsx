@@ -22,12 +22,12 @@ export function AppModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 grid place-items-center bg-slate-950/45 p-6"
+      className="fixed inset-0 z-50 grid place-items-center bg-slate-950/45 p-6 max-sm:p-4"
       role="dialog"
       aria-modal="true"
       aria-labelledby="app-modal-title"
     >
-      <div className="max-h-[calc(100vh-3rem)] w-full max-w-2xl overflow-y-auto rounded-app border border-app-border bg-white p-6 shadow-app">
+      <div className="max-h-[calc(100vh-3rem)] w-full max-w-2xl overflow-y-auto rounded-app border border-app-border bg-white p-6 shadow-app max-sm:p-4">
         <div className="mb-5 flex items-start justify-between gap-4">
           <div>
             <h2

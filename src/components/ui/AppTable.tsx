@@ -8,8 +8,8 @@ type AppTableProps = {
 
 export function AppTable({ children, className }: AppTableProps) {
   return (
-    <div className="overflow-hidden rounded-app border border-app-border bg-white">
-      <table className={cn("w-full border-collapse text-left text-sm", className)}>
+    <div className="overflow-x-auto rounded-app border border-app-border bg-white">
+      <table className={cn("min-w-[48rem] w-full border-collapse text-left text-sm", className)}>
         {children}
       </table>
     </div>

@@ -23,7 +23,7 @@ export function AppLayout({
       <section className="min-h-screen pl-64 max-lg:pl-0">
         <div className="min-h-screen px-9 pb-12 pt-7 max-lg:px-5 max-lg:pb-9 max-lg:pt-6">
           <Topbar eyebrow={eyebrow} title={title} status={status} />
-          <section className="grid w-full max-w-[1180px] gap-5">
+          <section className="mx-auto grid w-full max-w-[1280px] gap-5">
             {children}
           </section>
         </div>

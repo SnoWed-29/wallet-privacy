@@ -302,7 +302,15 @@ function InfoItem({ label, text }: { label: string; text: string }) {
   );
 }
 
-function ImportWorkflowModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+export function ImportWorkflowModal({
+  onClose,
+  onImported,
+  open,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onImported?: (result: ImportResult) => void;
+}) {
   const toast = useToast();
   const [isValidating, setIsValidating] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
@@ -380,6 +388,7 @@ function ImportWorkflowModal({ open, onClose }: { open: boolean; onClose: () => 
         mode === "replace" ? "Replace complete" : "Import complete",
       );
       setResult(nextResult);
+      onImported?.(nextResult);
     } catch (error) {
       toast.error(errorMessage(error), "Import failed");
     } finally {
