@@ -16,8 +16,8 @@ beforeEach(() => {
 test("renders export section", () => {
   renderWithProviders(<DataBackupSection />);
 
-  expect(screen.getByRole("heading", { name: "Export Data" })).toBeInTheDocument();
-  expect(screen.getByRole("button", { name: /export wallet data/i })).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: "Data Transfer" })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: /export data/i })).toBeInTheDocument();
 });
 
 test("clicking export button shows success notification", async () => {
@@ -25,7 +25,7 @@ test("clicking export button shows success notification", async () => {
   const user = userEvent.setup();
   renderWithProviders(<DataBackupSection />);
 
-  await user.click(screen.getByRole("button", { name: /export wallet data/i }));
+  await user.click(screen.getByRole("button", { name: /export data/i }));
 
   await waitFor(() => {
     expect(screen.getByText("Export complete")).toBeInTheDocument();
@@ -37,7 +37,7 @@ test("export error shows error notification", async () => {
   const user = userEvent.setup();
   renderWithProviders(<DataBackupSection />);
 
-  await user.click(screen.getByRole("button", { name: /export wallet data/i }));
+  await user.click(screen.getByRole("button", { name: /export data/i }));
 
   await waitFor(() => {
     expect(screen.getByText("Export failed")).toBeInTheDocument();

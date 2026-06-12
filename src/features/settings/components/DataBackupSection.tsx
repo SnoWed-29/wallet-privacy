@@ -1,7 +1,13 @@
 import { invoke } from "@tauri-apps/api/core";
-import { Download, Upload } from "lucide-react";
-import { type ChangeEvent } from "react";
-import { useState } from "react";
+import {
+  Download,
+  FileJson,
+  HelpCircle,
+  RotateCcw,
+  ShieldCheck,
+  Upload,
+} from "lucide-react";
+import { type ChangeEvent, type ReactNode, useState } from "react";
 import { AppBadge, AppButton, AppCard, AppInput, AppModal } from "../../../components/ui";
 import { useToast } from "../../../components/ui/ToastProvider";
 
@@ -58,6 +64,8 @@ type BackupPreview = {
   warnings: string[];
 };
 
+type ImportMode = "merge" | "replace";
+
 type ImportResult = {
   mode: ImportMode;
   summary: ImportSummary;
@@ -74,8 +82,6 @@ type RestoreResult = {
   safetyBackupCreatedAt: string;
 };
 
-type ImportMode = "merge" | "replace";
-
 declare global {
   interface Window {
     showSaveFilePicker?: (options?: SaveFilePickerOptions) => Promise<WalletExportFileHandle>;
@@ -91,7 +97,6 @@ function walletBackupFileName(prefix = "wallet-backup") {
 }
 
 async function saveJsonFile(json: string, suggestedName: string) {
-
   if (window.showSaveFilePicker) {
     const handle = await window.showSaveFilePicker({
       suggestedName,
@@ -128,30 +133,15 @@ function errorMessage(error: unknown) {
     return error;
   }
 
-  return "Could not export wallet data.";
+  return "Could not complete the data action.";
 }
 
 export function DataBackupSection() {
   const toast = useToast();
   const [isExporting, setIsExporting] = useState(false);
   const [isCreatingBackup, setIsCreatingBackup] = useState(false);
-  const [isValidatingImport, setIsValidatingImport] = useState(false);
-  const [isImporting, setIsImporting] = useState(false);
-  const [importJson, setImportJson] = useState("");
-  const [importFileName, setImportFileName] = useState("");
-  const [importPreview, setImportPreview] = useState<ImportPreview | null>(null);
-  const [importResult, setImportResult] = useState<ImportResult | null>(null);
-  const [selectedImportMode, setSelectedImportMode] = useState<ImportMode>("merge");
-  const [isConfirmingImport, setIsConfirmingImport] = useState(false);
-  const [replaceConfirmation, setReplaceConfirmation] = useState("");
-  const [isValidatingBackup, setIsValidatingBackup] = useState(false);
-  const [isRestoringBackup, setIsRestoringBackup] = useState(false);
-  const [backupJson, setBackupJson] = useState("");
-  const [backupFileName, setBackupFileName] = useState("");
-  const [backupPreview, setBackupPreview] = useState<BackupPreview | null>(null);
-  const [restoreResult, setRestoreResult] = useState<RestoreResult | null>(null);
-  const [isConfirmingRestore, setIsConfirmingRestore] = useState(false);
-  const [restoreConfirmation, setRestoreConfirmation] = useState("");
+  const [isImportOpen, setIsImportOpen] = useState(false);
+  const [isRestoreOpen, setIsRestoreOpen] = useState(false);
 
   async function handleExportWalletData() {
     setIsExporting(true);
@@ -183,96 +173,213 @@ export function DataBackupSection() {
     }
   }
 
-  async function handleImportFileSelected(event: ChangeEvent<HTMLInputElement>) {
+  return (
+    <AppCard
+      actions={<AppBadge variant="success">Local JSON</AppBadge>}
+      description="Move data when you need to, and keep recovery actions close but calm."
+      id="data-backup"
+      title="Data & Backup"
+    >
+      <div className="grid gap-4">
+        <div className="grid grid-cols-2 gap-4 max-lg:grid-cols-1">
+          <ActionCard
+            badge="Portable"
+            description="Move Wallet data between devices or Wallet installations."
+            icon={<FileJson className="h-5 w-5" aria-hidden="true" />}
+            title="Data Transfer"
+          >
+            <div className="flex flex-wrap gap-2">
+              <AppButton
+                className="gap-2"
+                disabled={isExporting}
+                onClick={handleExportWalletData}
+                variant="primary"
+              >
+                <Download className="h-4 w-4" aria-hidden="true" />
+                {isExporting ? "Exporting..." : "Export Data"}
+              </AppButton>
+              <AppButton
+                className="gap-2"
+                onClick={() => setIsImportOpen(true)}
+                variant="ghost"
+              >
+                <Upload className="h-4 w-4" aria-hidden="true" />
+                Import Data
+              </AppButton>
+            </div>
+          </ActionCard>
+
+          <ActionCard
+            badge="Recovery"
+            description="Protect your data and recover from mistakes."
+            icon={<ShieldCheck className="h-5 w-5" aria-hidden="true" />}
+            title="Safety & Recovery"
+          >
+            <div className="flex flex-wrap gap-2">
+              <AppButton
+                className="gap-2"
+                disabled={isCreatingBackup}
+                onClick={handleCreateBackup}
+                variant="primary"
+              >
+                <Download className="h-4 w-4" aria-hidden="true" />
+                {isCreatingBackup ? "Creating..." : "Create Backup"}
+              </AppButton>
+              <AppButton
+                className="gap-2"
+                onClick={() => setIsRestoreOpen(true)}
+                variant="danger"
+              >
+                <RotateCcw className="h-4 w-4" aria-hidden="true" />
+                Restore Backup
+              </AppButton>
+            </div>
+          </ActionCard>
+        </div>
+
+        <div className="rounded-app-sm border border-app-border bg-slate-50/70 p-4">
+          <div className="mb-3 flex items-center gap-2">
+            <HelpCircle className="h-5 w-5 text-app-primary" aria-hidden="true" />
+            <h3 className="m-0 text-base font-extrabold normal-case tracking-normal text-app-text">
+              Information & Help
+            </h3>
+          </div>
+          <div className="grid grid-cols-4 gap-3 text-sm max-xl:grid-cols-2 max-sm:grid-cols-1">
+            <InfoItem label="Export" text="Creates a portable file." />
+            <InfoItem label="Import" text="Adds or replaces data." />
+            <InfoItem label="Backup" text="Creates a safety copy." />
+            <InfoItem label="Restore" text="Returns Wallet to a previous state." />
+          </div>
+        </div>
+      </div>
+
+      <ImportWorkflowModal open={isImportOpen} onClose={() => setIsImportOpen(false)} />
+      <RestoreWorkflowModal open={isRestoreOpen} onClose={() => setIsRestoreOpen(false)} />
+    </AppCard>
+  );
+}
+
+function ActionCard({
+  badge,
+  children,
+  description,
+  icon,
+  title,
+}: {
+  badge: string;
+  children: ReactNode;
+  description: string;
+  icon: ReactNode;
+  title: string;
+}) {
+  return (
+    <div className="rounded-app-sm border border-app-border bg-white p-4 shadow-sm">
+      <div className="mb-4 flex items-start justify-between gap-4">
+        <div className="flex gap-3">
+          <div className="grid h-10 w-10 flex-none place-items-center rounded-app-sm bg-emerald-50 text-app-primary ring-1 ring-emerald-100">
+            {icon}
+          </div>
+          <div>
+            <h3 className="m-0 text-base font-extrabold normal-case tracking-normal text-app-text">
+              {title}
+            </h3>
+            <p className="mt-1 text-sm leading-relaxed text-app-muted">{description}</p>
+          </div>
+        </div>
+        <AppBadge variant="neutral">{badge}</AppBadge>
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function InfoItem({ label, text }: { label: string; text: string }) {
+  return (
+    <div className="rounded-app-sm border border-app-border bg-white p-3">
+      <p className="font-extrabold text-app-text">{label}</p>
+      <p className="mt-1 text-app-muted">{text}</p>
+    </div>
+  );
+}
+
+function ImportWorkflowModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const toast = useToast();
+  const [isValidating, setIsValidating] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
+  const [json, setJson] = useState("");
+  const [fileName, setFileName] = useState("");
+  const [preview, setPreview] = useState<ImportPreview | null>(null);
+  const [mode, setMode] = useState<ImportMode>("merge");
+  const [confirmation, setConfirmation] = useState("");
+  const [result, setResult] = useState<ImportResult | null>(null);
+
+  function reset() {
+    setIsValidating(false);
+    setIsImporting(false);
+    setJson("");
+    setFileName("");
+    setPreview(null);
+    setMode("merge");
+    setConfirmation("");
+    setResult(null);
+  }
+
+  function close() {
+    reset();
+    onClose();
+  }
+
+  async function handleFileSelected(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
-    setImportJson("");
-    setImportFileName("");
-    setImportPreview(null);
-    setImportResult(null);
-    setReplaceConfirmation("");
+    setJson("");
+    setFileName("");
+    setPreview(null);
+    setResult(null);
+    setConfirmation("");
 
     if (!file) {
       return;
     }
 
-    setIsValidatingImport(true);
+    setIsValidating(true);
 
     try {
-      const json = await file.text();
-      const preview = await invoke<ImportPreview>("validate_import_file", { json });
-      setImportJson(json);
-      setImportFileName(file.name);
-      setImportPreview(preview);
-      toast.success("Import file is valid. Review the summary before importing.", "Import ready");
+      const fileJson = await file.text();
+      const nextPreview = await invoke<ImportPreview>("validate_import_file", { json: fileJson });
+      setJson(fileJson);
+      setFileName(file.name);
+      setPreview(nextPreview);
+      toast.success("Import file is valid. Review the preview before continuing.", "Import ready");
     } catch (error) {
       toast.error(errorMessage(error), "Import validation failed");
       event.target.value = "";
     } finally {
-      setIsValidatingImport(false);
+      setIsValidating(false);
     }
   }
 
-  async function handleBackupFileSelected(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    setBackupJson("");
-    setBackupFileName("");
-    setBackupPreview(null);
-    setRestoreResult(null);
-    setRestoreConfirmation("");
-
-    if (!file) {
-      return;
-    }
-
-    setIsValidatingBackup(true);
-
-    try {
-      const json = await file.text();
-      const preview = await invoke<BackupPreview>("validate_backup_file", { json });
-      setBackupJson(json);
-      setBackupFileName(file.name);
-      setBackupPreview(preview);
-      toast.success("Backup file is valid. Review the restore preview before continuing.", "Backup ready");
-    } catch (error) {
-      toast.error(errorMessage(error), "Backup validation failed");
-      event.target.value = "";
-    } finally {
-      setIsValidatingBackup(false);
-    }
-  }
-
-  function openImportConfirmation(mode: ImportMode) {
-    setSelectedImportMode(mode);
-    setReplaceConfirmation("");
-    setIsConfirmingImport(true);
-  }
-
-  async function handleImportWalletData() {
-    if (!importJson) {
+  async function handleImport() {
+    if (!json) {
       toast.error("Select and validate a Wallet JSON export first.", "Import failed");
       return;
     }
 
-    if (selectedImportMode === "replace" && replaceConfirmation !== "REPLACE") {
-      toast.error("Type REPLACE to confirm restore.", "Confirmation required");
+    if (mode === "replace" && confirmation !== "REPLACE") {
+      toast.error("Type REPLACE to confirm replacement.", "Confirmation required");
       return;
     }
 
     setIsImporting(true);
 
     try {
-      const result = await invoke<ImportResult>("import_wallet_data", {
-        json: importJson,
-        mode: selectedImportMode,
-      });
-      const importedCount = totalCounts(result.imported);
-      const skippedCount = Object.values(result.skipped).reduce((total, count) => total + count, 0);
+      const nextResult = await invoke<ImportResult>("import_wallet_data", { json, mode });
+      const importedCount = totalCounts(nextResult.imported);
+      const skippedCount = totalCounts(nextResult.skipped);
       toast.success(
-        `${selectedImportMode === "replace" ? "Restored" : "Imported"} ${importedCount} records. Skipped ${skippedCount}.`,
-        selectedImportMode === "replace" ? "Restore complete" : "Import complete",
+        `${mode === "replace" ? "Replaced data with" : "Imported"} ${importedCount} records. Skipped ${skippedCount}.`,
+        mode === "replace" ? "Replace complete" : "Import complete",
       );
-      setImportResult(result);
-      setIsConfirmingImport(false);
+      setResult(nextResult);
     } catch (error) {
       toast.error(errorMessage(error), "Import failed");
     } finally {
@@ -280,47 +387,200 @@ export function DataBackupSection() {
     }
   }
 
-  async function handleRestoreBackup() {
-    if (!backupJson) {
+  return (
+    <AppModal
+      description="Import is guided step by step so you can review the file before anything changes."
+      onClose={close}
+      open={open}
+      title="Import Data"
+    >
+      <div className="grid gap-4">
+        <StepHeader current={result ? 5 : preview ? 3 : 1} labels={["Select", "Preview", "Mode", "Confirm", "Result"]} />
+
+        <section className="grid gap-3 rounded-app-sm border border-app-border bg-slate-50/70 p-4">
+          <h3 className="m-0 text-sm font-extrabold uppercase tracking-wide text-app-muted">
+            Step 1: Select File
+          </h3>
+          <label className="grid gap-2">
+            <span className="text-sm font-extrabold text-slate-700">Wallet JSON file</span>
+            <AppInput
+              accept="application/json,.json"
+              disabled={isValidating || isImporting}
+              onChange={handleFileSelected}
+              type="file"
+            />
+          </label>
+          {isValidating ? (
+            <p className="text-sm font-extrabold text-app-muted">Validating import file...</p>
+          ) : null}
+        </section>
+
+        {preview ? (
+          <>
+            <PreviewPanel
+              fileName={fileName}
+              subtitle={`Export version ${preview.summary.version}, created ${preview.summary.exportedAt}`}
+              summary={preview.summary}
+              warnings={preview.warnings}
+            />
+
+            <section className="grid gap-3 rounded-app-sm border border-app-border bg-white p-4">
+              <h3 className="m-0 text-sm font-extrabold uppercase tracking-wide text-app-muted">
+                Step 3: Choose Mode
+              </h3>
+              <div className="grid grid-cols-2 gap-3 max-sm:grid-cols-1">
+                <ModeOption
+                  checked={mode === "merge"}
+                  description="Adds missing records and skips duplicates."
+                  label="Merge"
+                  onClick={() => {
+                    setMode("merge");
+                    setConfirmation("");
+                  }}
+                />
+                <ModeOption
+                  checked={mode === "replace"}
+                  description="Clears current data, then imports the file."
+                  label="Replace"
+                  onClick={() => setMode("replace")}
+                />
+              </div>
+            </section>
+
+            <section className="grid gap-3 rounded-app-sm border border-app-border bg-white p-4">
+              <h3 className="m-0 text-sm font-extrabold uppercase tracking-wide text-app-muted">
+                Step 4: Confirm
+              </h3>
+              {mode === "replace" ? (
+                <div className="grid gap-3">
+                  <p className="rounded-app-sm border border-red-200 bg-red-50 p-3 text-sm font-extrabold text-red-800">
+                    Replacing data will clear current Wallet records before importing this file.
+                  </p>
+                  <label className="grid gap-2">
+                    <span className="text-sm font-extrabold text-red-700">
+                      Type REPLACE to confirm
+                    </span>
+                    <AppInput
+                      value={confirmation}
+                      onChange={(event) => setConfirmation(event.target.value)}
+                    />
+                  </label>
+                </div>
+              ) : (
+                <p className="text-sm text-app-muted">
+                  Current data stays in place. Duplicates and conflicts are handled during import.
+                </p>
+              )}
+              <div className="flex justify-end gap-3">
+                <AppButton disabled={isImporting} onClick={close} variant="ghost">
+                  Cancel
+                </AppButton>
+                <AppButton
+                  disabled={isImporting || (mode === "replace" && confirmation !== "REPLACE")}
+                  onClick={handleImport}
+                  variant={mode === "replace" ? "danger" : "primary"}
+                >
+                  {isImporting ? "Working..." : mode === "replace" ? "Replace Data" : "Import Data"}
+                </AppButton>
+              </div>
+            </section>
+          </>
+        ) : null}
+
+        {result ? <ResultPanel result={result} /> : null}
+      </div>
+    </AppModal>
+  );
+}
+
+function RestoreWorkflowModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const toast = useToast();
+  const [isValidating, setIsValidating] = useState(false);
+  const [isRestoring, setIsRestoring] = useState(false);
+  const [json, setJson] = useState("");
+  const [fileName, setFileName] = useState("");
+  const [preview, setPreview] = useState<BackupPreview | null>(null);
+  const [confirmation, setConfirmation] = useState("");
+  const [result, setResult] = useState<RestoreResult | null>(null);
+
+  function reset() {
+    setIsValidating(false);
+    setIsRestoring(false);
+    setJson("");
+    setFileName("");
+    setPreview(null);
+    setConfirmation("");
+    setResult(null);
+  }
+
+  function close() {
+    reset();
+    onClose();
+  }
+
+  async function handleFileSelected(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    setJson("");
+    setFileName("");
+    setPreview(null);
+    setConfirmation("");
+    setResult(null);
+
+    if (!file) {
+      return;
+    }
+
+    setIsValidating(true);
+
+    try {
+      const fileJson = await file.text();
+      const nextPreview = await invoke<BackupPreview>("validate_backup_file", { json: fileJson });
+      setJson(fileJson);
+      setFileName(file.name);
+      setPreview(nextPreview);
+      toast.success("Backup file is valid. Review the preview before restoring.", "Backup ready");
+    } catch (error) {
+      toast.error(errorMessage(error), "Backup validation failed");
+      event.target.value = "";
+    } finally {
+      setIsValidating(false);
+    }
+  }
+
+  async function handleRestore() {
+    if (!json) {
       toast.error("Select and validate a Wallet backup first.", "Restore failed");
       return;
     }
 
-    if (restoreConfirmation !== "RESTORE") {
+    if (confirmation !== "RESTORE") {
       toast.error("Type RESTORE to confirm backup restore.", "Confirmation required");
       return;
     }
 
-    setIsRestoringBackup(true);
+    setIsRestoring(true);
 
     try {
-      const result = await invoke<RestoreResult>("restore_wallet_backup", {
-        json: backupJson,
-      });
-      const restoredCount = totalCounts(result.restored.imported);
+      const nextResult = await invoke<RestoreResult>("restore_wallet_backup", { json });
       toast.success(
-        `Restored ${restoredCount} records. A safety backup was created first.`,
+        `Restored ${totalCounts(nextResult.restored.imported)} records. A safety backup was created first.`,
         "Restore complete",
       );
-      setRestoreResult(result);
-      setIsConfirmingRestore(false);
+      setResult(nextResult);
     } catch (error) {
       toast.error(errorMessage(error), "Restore failed");
     } finally {
-      setIsRestoringBackup(false);
+      setIsRestoring(false);
     }
   }
 
   async function handleSaveSafetyBackup() {
-    if (!restoreResult) {
+    if (!result) {
       return;
     }
 
     try {
-      await saveJsonFile(
-        restoreResult.safetyBackupJson,
-        walletBackupFileName("wallet-safety-backup"),
-      );
+      await saveJsonFile(result.safetyBackupJson, walletBackupFileName("wallet-safety-backup"));
       toast.success("Safety backup was saved.", "Safety backup saved");
     } catch (error) {
       toast.error(errorMessage(error), "Safety backup save failed");
@@ -328,429 +588,212 @@ export function DataBackupSection() {
   }
 
   return (
-    <AppCard
-      description="Export data for portability, import data into this wallet, create safety backups, or restore from a backup when you need to replace current data."
-      title="Data & Backup"
-      actions={<AppBadge variant="success">Local JSON</AppBadge>}
+    <AppModal
+      description="Restore uses a dedicated flow because it replaces current data."
+      onClose={close}
+      open={open}
+      title="Restore Backup"
     >
       <div className="grid gap-4">
-        <div className="rounded-app-sm border border-app-border bg-slate-50/70 p-4">
-          <div className="flex items-start justify-between gap-4 max-sm:flex-col">
-            <div>
-              <h3 className="m-0 text-base font-extrabold normal-case tracking-normal text-app-text">
-                Export Data
-              </h3>
-              <p className="mt-1 text-sm leading-relaxed text-app-muted">
-                Export accounts, categories, transactions, budgets, recurring
-                bills, and savings goals into one JSON file with version
-                metadata.
-              </p>
-            </div>
-            <AppButton
-              className="gap-2 whitespace-nowrap"
-              disabled={isExporting}
-              onClick={handleExportWalletData}
-              variant="primary"
-            >
-              <Download className="h-4 w-4" aria-hidden="true" />
-              {isExporting ? "Exporting..." : "Export Wallet Data"}
-            </AppButton>
-          </div>
-        </div>
+        <StepHeader current={result ? 5 : preview ? 3 : 1} labels={["Select", "Preview", "Warning", "Confirm", "Result"]} />
 
-        <div className="rounded-app-sm border border-app-border bg-slate-50/70 p-4">
-          <div className="grid gap-4">
-            <div className="flex items-start justify-between gap-4 max-sm:flex-col">
-              <div>
-                <h3 className="m-0 text-base font-extrabold normal-case tracking-normal text-app-text">
-                  Import Data
-                </h3>
-                <p className="mt-1 text-sm leading-relaxed text-app-muted">
-                  Select a Wallet JSON export, validate it, review the summary,
-                  then merge missing records into this wallet.
-                </p>
-              </div>
-              <AppBadge variant="warning">Merge import</AppBadge>
-            </div>
-
-            <label className="grid gap-2">
-              <span className="text-sm font-extrabold text-slate-700">
-                Wallet JSON file
-              </span>
-              <AppInput
-                accept="application/json,.json"
-                disabled={isValidatingImport || isImporting}
-                onChange={handleImportFileSelected}
-                type="file"
-              />
-            </label>
-
-            {isValidatingImport ? (
-              <p className="text-sm font-extrabold text-app-muted">Validating import file...</p>
-            ) : null}
-
-            {importPreview ? (
-              <div className="grid gap-3">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div>
-                    <p className="font-extrabold text-app-text">{importFileName}</p>
-                    <p className="text-sm text-app-muted">
-                      Export version {importPreview.summary.version}, created{" "}
-                      {importPreview.summary.exportedAt}
-                    </p>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    <AppButton
-                      className="gap-2 whitespace-nowrap"
-                      disabled={isImporting}
-                      onClick={() => openImportConfirmation("merge")}
-                      variant="secondary"
-                    >
-                      <Upload className="h-4 w-4" aria-hidden="true" />
-                      Merge with current data
-                    </AppButton>
-                    <AppButton
-                      className="gap-2 whitespace-nowrap"
-                      disabled={isImporting}
-                      onClick={() => openImportConfirmation("replace")}
-                      variant="danger"
-                    >
-                      Restore from file
-                    </AppButton>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-3 gap-3 text-sm max-lg:grid-cols-2 max-sm:grid-cols-1">
-                  <SummaryItem label="Accounts" value={importPreview.summary.accounts} />
-                  <SummaryItem label="Categories" value={importPreview.summary.categories} />
-                  <SummaryItem label="Transactions" value={importPreview.summary.transactions} />
-                  <SummaryItem label="Budgets" value={importPreview.summary.budgets} />
-                  <SummaryItem
-                    label="Recurring Bills"
-                    value={importPreview.summary.recurringBills}
-                  />
-                  <SummaryItem label="Savings Goals" value={importPreview.summary.savingsGoals} />
-                </div>
-
-                <div className="grid grid-cols-2 gap-3 text-sm max-lg:grid-cols-1">
-                  <SummaryPanel title="Detected duplicates" counts={importPreview.duplicates} />
-                  <SummaryPanel title="Detected conflicts" counts={importPreview.conflicts} />
-                </div>
-
-                {importPreview.warnings.length ? (
-                  <div className="rounded-app-sm border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
-                    <p className="font-extrabold">Warnings</p>
-                    <ul className="mt-2 list-disc space-y-1 pl-5">
-                      {importPreview.warnings.map((warning) => (
-                        <li key={warning}>{warning}</li>
-                      ))}
-                    </ul>
-                  </div>
-                ) : null}
-              </div>
-            ) : null}
-
-            {importResult ? (
-              <div className="rounded-app-sm border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">
-                <p className="font-extrabold">
-                  {importResult.mode === "replace" ? "Restore result" : "Import result"}
-                </p>
-                <p className="mt-1">
-                  Imported {totalCounts(importResult.imported)} records. Skipped{" "}
-                  {totalCounts(importResult.skipped)} duplicates or handled conflicts.
-                </p>
-              </div>
-            ) : null}
-          </div>
-        </div>
-
-        <div className="rounded-app-sm border border-app-border bg-slate-50/70 p-4">
-          <div className="flex items-start justify-between gap-4 max-sm:flex-col">
-            <div>
-              <h3 className="m-0 text-base font-extrabold normal-case tracking-normal text-app-text">
-                Create Backup
-              </h3>
-              <p className="mt-1 text-sm leading-relaxed text-app-muted">
-                Create a safety copy of all Wallet data with backup metadata,
-                app version when available, and record counts.
-              </p>
-              <p className="mt-1 text-sm text-app-muted">
-                Suggested filename: {walletBackupFileName()}
-              </p>
-            </div>
-            <AppButton
-              className="gap-2 whitespace-nowrap"
-              disabled={isCreatingBackup}
-              onClick={handleCreateBackup}
-              variant="primary"
-            >
-              <Download className="h-4 w-4" aria-hidden="true" />
-              {isCreatingBackup ? "Creating..." : "Create Backup"}
-            </AppButton>
-          </div>
-        </div>
-
-        <div className="rounded-app-sm border border-red-200 bg-red-50/60 p-4">
-          <div className="grid gap-4">
-            <div className="flex items-start justify-between gap-4 max-sm:flex-col">
-              <div>
-                <h3 className="m-0 text-base font-extrabold normal-case tracking-normal text-red-950">
-                  Restore Backup
-                </h3>
-                <p className="mt-1 text-sm leading-relaxed text-red-900">
-                  Select a Wallet backup JSON file, validate it, review the
-                  restore preview, then explicitly confirm replacement.
-                </p>
-              </div>
-              <AppBadge variant="expense">Replace-only</AppBadge>
-            </div>
-
-            <p className="rounded-app-sm border border-red-300 bg-white p-3 text-sm font-extrabold text-red-800">
-              Restoring a backup will replace your current Wallet data.
-            </p>
-
-            <label className="grid gap-2">
-              <span className="text-sm font-extrabold text-slate-700">
-                Wallet backup JSON file
-              </span>
-              <AppInput
-                accept="application/json,.json"
-                disabled={isValidatingBackup || isRestoringBackup}
-                onChange={handleBackupFileSelected}
-                type="file"
-              />
-            </label>
-
-            {isValidatingBackup ? (
-              <p className="text-sm font-extrabold text-app-muted">Validating backup file...</p>
-            ) : null}
-
-            {backupPreview ? (
-              <div className="grid gap-3">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div>
-                    <p className="font-extrabold text-app-text">{backupFileName}</p>
-                    <p className="text-sm text-app-muted">
-                      Backup version {backupPreview.metadata.backupVersion}, created{" "}
-                      {backupPreview.metadata.createdAt}
-                      {backupPreview.metadata.appVersion
-                        ? `, app ${backupPreview.metadata.appVersion}`
-                        : ""}
-                    </p>
-                  </div>
-                  <AppButton
-                    className="gap-2 whitespace-nowrap"
-                    disabled={isRestoringBackup}
-                    onClick={() => {
-                      setRestoreConfirmation("");
-                      setIsConfirmingRestore(true);
-                    }}
-                    variant="danger"
-                  >
-                    <Upload className="h-4 w-4" aria-hidden="true" />
-                    Restore Backup
-                  </AppButton>
-                </div>
-
-                <div className="grid grid-cols-3 gap-3 text-sm max-lg:grid-cols-2 max-sm:grid-cols-1">
-                  <SummaryItem label="Accounts" value={backupPreview.summary.accounts} />
-                  <SummaryItem label="Categories" value={backupPreview.summary.categories} />
-                  <SummaryItem label="Transactions" value={backupPreview.summary.transactions} />
-                  <SummaryItem label="Budgets" value={backupPreview.summary.budgets} />
-                  <SummaryItem
-                    label="Recurring Bills"
-                    value={backupPreview.summary.recurringBills}
-                  />
-                  <SummaryItem label="Savings Goals" value={backupPreview.summary.savingsGoals} />
-                </div>
-
-                {backupPreview.warnings.length ? (
-                  <div className="rounded-app-sm border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
-                    <p className="font-extrabold">Warnings</p>
-                    <ul className="mt-2 list-disc space-y-1 pl-5">
-                      {backupPreview.warnings.map((warning) => (
-                        <li key={warning}>{warning}</li>
-                      ))}
-                    </ul>
-                  </div>
-                ) : null}
-              </div>
-            ) : null}
-
-            {restoreResult ? (
-              <div className="rounded-app-sm border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">
-                <p className="font-extrabold">Restore summary</p>
-                <p className="mt-1">
-                  Restored {totalCounts(restoreResult.restored.imported)} records from the backup.
-                  A safety backup was created first at {restoreResult.safetyBackupCreatedAt}.
-                </p>
-                <AppButton
-                  className="mt-3"
-                  onClick={handleSaveSafetyBackup}
-                  variant="secondary"
-                >
-                  Save safety backup
-                </AppButton>
-              </div>
-            ) : null}
-          </div>
-        </div>
-
-        <div className="grid grid-cols-3 gap-3 text-sm max-lg:grid-cols-1">
-          <div className="rounded-app-sm border border-app-border bg-white p-3">
-            <p className="font-extrabold text-app-text">Included</p>
-            <p className="mt-1 text-app-muted">
-              All supported wallet entities, including empty collections.
-            </p>
-          </div>
-          <div className="rounded-app-sm border border-app-border bg-white p-3">
-            <p className="font-extrabold text-app-text">Format</p>
-            <p className="mt-1 text-app-muted">
-              Pretty-printed JSON with `version` and `exportedAt` metadata.
-            </p>
-          </div>
-          <div className="rounded-app-sm border border-app-border bg-white p-3">
-            <p className="font-extrabold text-app-text">Storage</p>
-            <p className="mt-1 text-app-muted">
-              Saved only where you choose on this device.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <AppModal
-        description={
-          selectedImportMode === "replace"
-            ? "This will replace your current Wallet data with the selected file. Your current data may be lost."
-            : "Imported data will be added to your current Wallet data. Existing data will stay."
-        }
-        onClose={() => {
-          setIsConfirmingImport(false);
-          setReplaceConfirmation("");
-        }}
-        open={isConfirmingImport}
-        title={selectedImportMode === "replace" ? "Confirm restore" : "Confirm merge import"}
-      >
-        <div className="grid gap-4">
-          <p className="text-sm leading-relaxed text-app-muted">
-            {selectedImportMode === "replace"
-              ? "Restore is destructive. Wallet will clear current finance data, then import records from the selected file."
-              : "Duplicates may be skipped and conflicts may be renamed or reported. Existing records are not deleted."}
-          </p>
-          {selectedImportMode === "replace" ? (
-            <label className="grid gap-2">
-              <span className="text-sm font-extrabold text-red-700">
-                Type REPLACE to confirm restore
-              </span>
-              <AppInput
-                value={replaceConfirmation}
-                onChange={(event) => setReplaceConfirmation(event.target.value)}
-              />
-            </label>
-          ) : null}
-          <div className="flex justify-end gap-3">
-            <AppButton
-              disabled={isImporting}
-              onClick={() => {
-                setIsConfirmingImport(false);
-                setReplaceConfirmation("");
-              }}
-              variant="ghost"
-            >
-              Cancel
-            </AppButton>
-            <AppButton
-              disabled={
-                isImporting ||
-                (selectedImportMode === "replace" && replaceConfirmation !== "REPLACE")
-              }
-              onClick={handleImportWalletData}
-              variant={selectedImportMode === "replace" ? "danger" : "primary"}
-            >
-              {isImporting
-                ? "Working..."
-                : selectedImportMode === "replace"
-                  ? "Replace current data"
-                  : "Merge import"}
-            </AppButton>
-          </div>
-        </div>
-      </AppModal>
-
-      <AppModal
-        description="This restore is replace-only. Wallet will not merge backup data with current data."
-        onClose={() => {
-          setIsConfirmingRestore(false);
-          setRestoreConfirmation("");
-        }}
-        open={isConfirmingRestore}
-        title="Confirm backup restore"
-      >
-        <div className="grid gap-4">
-          <p className="rounded-app-sm border border-red-300 bg-red-50 p-3 text-sm font-extrabold text-red-800">
-            Restoring a backup will replace your current Wallet data.
-          </p>
-          <p className="text-sm leading-relaxed text-app-muted">
-            Wallet will create a safety backup of the current data first, then
-            replace current records with the validated backup contents.
-          </p>
+        <section className="grid gap-3 rounded-app-sm border border-app-border bg-slate-50/70 p-4">
+          <h3 className="m-0 text-sm font-extrabold uppercase tracking-wide text-app-muted">
+            Step 1: Select Backup
+          </h3>
           <label className="grid gap-2">
-            <span className="text-sm font-extrabold text-red-700">
-              Type RESTORE to confirm backup restore
-            </span>
+            <span className="text-sm font-extrabold text-slate-700">Wallet backup JSON file</span>
             <AppInput
-              value={restoreConfirmation}
-              onChange={(event) => setRestoreConfirmation(event.target.value)}
+              accept="application/json,.json"
+              disabled={isValidating || isRestoring}
+              onChange={handleFileSelected}
+              type="file"
             />
           </label>
-          <div className="flex justify-end gap-3">
-            <AppButton
-              disabled={isRestoringBackup}
-              onClick={() => {
-                setIsConfirmingRestore(false);
-                setRestoreConfirmation("");
-              }}
-              variant="ghost"
-            >
-              Cancel
+          {isValidating ? (
+            <p className="text-sm font-extrabold text-app-muted">Validating backup file...</p>
+          ) : null}
+        </section>
+
+        {preview ? (
+          <>
+            <PreviewPanel
+              fileName={fileName}
+              subtitle={`Backup version ${preview.metadata.backupVersion}, created ${preview.metadata.createdAt}`}
+              summary={preview.summary}
+              warnings={preview.warnings}
+            />
+
+            <section className="grid gap-3 rounded-app-sm border border-red-200 bg-red-50 p-4">
+              <h3 className="m-0 text-sm font-extrabold uppercase tracking-wide text-red-700">
+                Step 3: Warning
+              </h3>
+              <p className="text-sm font-extrabold text-red-800">
+                Restoring a backup will replace your current Wallet data.
+              </p>
+              <p className="text-sm leading-relaxed text-red-800">
+                Wallet creates a safety backup first, then replaces current records with the
+                selected backup.
+              </p>
+            </section>
+
+            <section className="grid gap-3 rounded-app-sm border border-app-border bg-white p-4">
+              <h3 className="m-0 text-sm font-extrabold uppercase tracking-wide text-app-muted">
+                Step 4: Confirm Restore
+              </h3>
+              <label className="grid gap-2">
+                <span className="text-sm font-extrabold text-red-700">
+                  Type RESTORE to confirm
+                </span>
+                <AppInput
+                  value={confirmation}
+                  onChange={(event) => setConfirmation(event.target.value)}
+                />
+              </label>
+              <div className="flex justify-end gap-3">
+                <AppButton disabled={isRestoring} onClick={close} variant="ghost">
+                  Cancel
+                </AppButton>
+                <AppButton
+                  disabled={isRestoring || confirmation !== "RESTORE"}
+                  onClick={handleRestore}
+                  variant="danger"
+                >
+                  {isRestoring ? "Restoring..." : "Restore Backup"}
+                </AppButton>
+              </div>
+            </section>
+          </>
+        ) : null}
+
+        {result ? (
+          <section className="rounded-app-sm border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
+            <h3 className="m-0 font-extrabold">Step 5: Result</h3>
+            <p className="mt-1">
+              Restored {totalCounts(result.restored.imported)} records. A safety backup was created
+              first at {result.safetyBackupCreatedAt}.
+            </p>
+            <AppButton className="mt-3" onClick={handleSaveSafetyBackup} variant="secondary">
+              Save safety backup
             </AppButton>
-            <AppButton
-              disabled={isRestoringBackup || restoreConfirmation !== "RESTORE"}
-              onClick={handleRestoreBackup}
-              variant="danger"
-            >
-              {isRestoringBackup ? "Restoring..." : "Replace current data"}
-            </AppButton>
-          </div>
-        </div>
-      </AppModal>
-    </AppCard>
+          </section>
+        ) : null}
+      </div>
+    </AppModal>
   );
 }
 
-function totalCounts(counts: ImportEntityCounts) {
-  return Object.values(counts).reduce((total, count) => total + count, 0);
+function StepHeader({ current, labels }: { current: number; labels: string[] }) {
+  return (
+    <ol className="grid grid-cols-5 gap-2 text-xs font-extrabold text-app-muted max-sm:grid-cols-1">
+      {labels.map((label, index) => {
+        const step = index + 1;
+        return (
+          <li
+            className={`rounded-app-sm border px-3 py-2 ${
+              step <= current
+                ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+                : "border-app-border bg-white"
+            }`}
+            key={label}
+          >
+            {step}. {label}
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
+function PreviewPanel({
+  fileName,
+  subtitle,
+  summary,
+  warnings,
+}: {
+  fileName: string;
+  subtitle: string;
+  summary: ImportSummary;
+  warnings: string[];
+}) {
+  return (
+    <section className="grid gap-3 rounded-app-sm border border-app-border bg-white p-4">
+      <div>
+        <h3 className="m-0 text-sm font-extrabold uppercase tracking-wide text-app-muted">
+          Step 2: Validation & Preview
+        </h3>
+        <p className="mt-2 font-extrabold text-app-text">{fileName}</p>
+        <p className="text-sm text-app-muted">{subtitle}</p>
+      </div>
+      <div className="grid grid-cols-3 gap-3 text-sm max-sm:grid-cols-2">
+        <SummaryItem label="Accounts" value={summary.accounts} />
+        <SummaryItem label="Categories" value={summary.categories} />
+        <SummaryItem label="Transactions" value={summary.transactions} />
+        <SummaryItem label="Budgets" value={summary.budgets} />
+        <SummaryItem label="Recurring Bills" value={summary.recurringBills} />
+        <SummaryItem label="Savings Goals" value={summary.savingsGoals} />
+      </div>
+      {warnings.length ? (
+        <div className="rounded-app-sm border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+          <p className="font-extrabold">Warnings</p>
+          <ul className="mt-2 list-disc space-y-1 pl-5">
+            {warnings.map((warning) => (
+              <li key={warning}>{warning}</li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
+function ModeOption({
+  checked,
+  description,
+  label,
+  onClick,
+}: {
+  checked: boolean;
+  description: string;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      className={`rounded-app-sm border p-3 text-left transition focus:outline-none focus:ring-4 focus:ring-emerald-500/20 ${
+        checked ? "border-app-primary bg-emerald-50" : "border-app-border bg-white hover:bg-slate-50"
+      }`}
+      onClick={onClick}
+      type="button"
+    >
+      <span className="block font-extrabold text-app-text">{label}</span>
+      <span className="mt-1 block text-sm text-app-muted">{description}</span>
+    </button>
+  );
+}
+
+function ResultPanel({ result }: { result: ImportResult }) {
+  return (
+    <section className="rounded-app-sm border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
+      <h3 className="m-0 font-extrabold">Step 5: Result</h3>
+      <p className="mt-1">
+        {result.mode === "replace" ? "Replaced data with" : "Imported"}{" "}
+        {totalCounts(result.imported)} records. Skipped {totalCounts(result.skipped)} duplicates
+        or handled conflicts.
+      </p>
+    </section>
+  );
 }
 
 function SummaryItem({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-app-sm border border-app-border bg-white p-3">
-      <p className="text-xs font-extrabold uppercase tracking-wide text-app-muted">
-        {label}
-      </p>
+    <div className="rounded-app-sm border border-app-border bg-slate-50/70 p-3">
+      <p className="text-xs font-extrabold uppercase tracking-wide text-app-muted">{label}</p>
       <p className="mt-1 text-xl font-extrabold text-app-text">{value}</p>
     </div>
   );
 }
 
-function SummaryPanel({ title, counts }: { title: string; counts: ImportEntityCounts }) {
-  return (
-    <div className="rounded-app-sm border border-app-border bg-white p-3">
-      <p className="font-extrabold text-app-text">{title}</p>
-      <p className="mt-1 text-sm text-app-muted">
-        {totalCounts(counts)} total across accounts, categories, transactions,
-        budgets, recurring bills, and savings goals.
-      </p>
-    </div>
-  );
+function totalCounts(counts: ImportEntityCounts) {
+  return Object.values(counts).reduce((total, count) => total + count, 0);
 }

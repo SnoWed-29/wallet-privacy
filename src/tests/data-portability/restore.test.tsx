@@ -1,7 +1,7 @@
 import { beforeEach, expect, test } from "vitest";
 import { mockTauriSuccess, resetTauriMocks } from "../../test/mocks/tauri";
 import { DataBackupSection } from "../../features/settings/components/DataBackupSection";
-import { renderWithProviders, screen, userEvent, waitFor } from "../../test/test-utils";
+import { renderWithProviders, screen, userEvent, waitFor, within } from "../../test/test-utils";
 
 beforeEach(() => {
   resetTauriMocks();
@@ -10,8 +10,9 @@ beforeEach(() => {
 test("renders restore section", () => {
   renderWithProviders(<DataBackupSection />);
 
-  expect(screen.getByRole("heading", { name: "Restore Backup" })).toBeInTheDocument();
-  expect(screen.getByText("Restoring a backup will replace your current Wallet data.")).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: "Safety & Recovery" })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: /restore backup/i })).toBeInTheDocument();
+  expect(screen.queryByText("Restoring a backup will replace your current Wallet data.")).not.toBeInTheDocument();
 });
 
 test("selecting backup file shows warning modal and requires confirmation", async () => {
@@ -19,19 +20,20 @@ test("selecting backup file shows warning modal and requires confirmation", asyn
   const user = userEvent.setup();
   renderWithProviders(<DataBackupSection />);
 
+  await user.click(screen.getByRole("button", { name: /restore backup/i }));
   await user.upload(
     screen.getByLabelText("Wallet backup JSON file"),
     new File([JSON.stringify({ backupVersion: "1.0" })], "wallet-backup.json"),
   );
-  await user.click(await screen.findByRole("button", { name: /^restore backup$/i }));
 
-  expect(screen.getByRole("heading", { name: "Confirm backup restore" })).toBeInTheDocument();
-  expect(screen.getAllByText("Restoring a backup will replace your current Wallet data.")).toHaveLength(2);
-  expect(screen.getByRole("button", { name: /replace current data/i })).toBeDisabled();
+  expect(await screen.findByText("Step 3: Warning")).toBeInTheDocument();
+  const dialog = screen.getByRole("dialog", { name: "Restore Backup" });
+  expect(screen.getByText("Restoring a backup will replace your current Wallet data.")).toBeInTheDocument();
+  expect(within(dialog).getByRole("button", { name: /^restore backup$/i })).toBeDisabled();
 
   await user.type(screen.getByLabelText(/type restore/i), "RESTORE");
 
-  expect(screen.getByRole("button", { name: /replace current data/i })).toBeEnabled();
+  expect(within(dialog).getByRole("button", { name: /^restore backup$/i })).toBeEnabled();
 });
 
 test("restore success notification appears after confirmation", async () => {
@@ -40,13 +42,17 @@ test("restore success notification appears after confirmation", async () => {
   const user = userEvent.setup();
   renderWithProviders(<DataBackupSection />);
 
+  await user.click(screen.getByRole("button", { name: /restore backup/i }));
   await user.upload(
     screen.getByLabelText("Wallet backup JSON file"),
     new File([JSON.stringify({ backupVersion: "1.0" })], "wallet-backup.json"),
   );
-  await user.click(await screen.findByRole("button", { name: /^restore backup$/i }));
   await user.type(screen.getByLabelText(/type restore/i), "RESTORE");
-  await user.click(screen.getByRole("button", { name: /replace current data/i }));
+  await user.click(
+    within(screen.getByRole("dialog", { name: "Restore Backup" })).getByRole("button", {
+      name: /^restore backup$/i,
+    }),
+  );
 
   await waitFor(() => {
     expect(screen.getByText("Restore complete")).toBeInTheDocument();

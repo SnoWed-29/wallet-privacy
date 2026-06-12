@@ -16,7 +16,7 @@ beforeEach(() => {
 test("renders backup section", () => {
   renderWithProviders(<DataBackupSection />);
 
-  expect(screen.getByRole("heading", { name: "Create Backup" })).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: "Safety & Recovery" })).toBeInTheDocument();
   expect(screen.getByRole("button", { name: /create backup/i })).toBeInTheDocument();
 });
 
