@@ -98,31 +98,52 @@ describe("onboarding", () => {
     expect(screen.getByRole("heading", { name: "Create your first account" })).toBeVisible();
   });
 
-  test("account step validates and submits only the real account DTO fields", async () => {
+  test("account step matches dedicated account creation and submits default DTO fields", async () => {
     mockWalletBootstrap();
     const user = userEvent.setup();
     renderWithProviders(<App />, { route: "/dashboard" });
 
     await user.click(await screen.findByRole("button", { name: /get started/i }));
+    expect(screen.getByLabelText("Account name")).toBeVisible();
+    expect(screen.queryByLabelText("Account type")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Currency")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Starting balance")).not.toBeInTheDocument();
+
     await user.click(screen.getByRole("button", { name: /create account/i }));
 
     expect(screen.getByText("Enter an account name to continue.")).toBeInTheDocument();
     expect(commandCallCount("create_account")).toBe(0);
 
     await user.type(screen.getByLabelText("Account name"), "Cash");
-    await user.selectOptions(screen.getByLabelText("Account type"), "bank");
-    await user.type(screen.getByLabelText("Starting balance"), "100.00");
     await user.click(screen.getByRole("button", { name: /create account/i }));
 
     expect(await screen.findByRole("heading", { name: "Choose categories" })).toBeVisible();
     expect(lastCommandRequest("create_account")).toEqual({
       name: "Cash",
-      accountType: "bank",
+      accountType: "cash",
       currency: "MAD",
-      initialBalanceMinor: 10_000,
+      initialBalanceMinor: 0,
     });
     expect(lastCommandRequest("create_account")).not.toHaveProperty("balanceMinor");
     expect(lastCommandRequest("create_account")).not.toHaveProperty("createdAt");
+  });
+
+  test("account step creates an account even when onboarding opens with existing accounts", async () => {
+    mockWalletBootstrap({ accounts: [accountFixture], dashboard: dashboardFixture });
+    const user = userEvent.setup();
+    renderWithProviders(<App />, { route: "/dashboard" });
+
+    await user.click(await screen.findByRole("button", { name: /get started/i }));
+    await user.type(screen.getByLabelText("Account name"), "Travel cash");
+    await user.click(screen.getByRole("button", { name: /create account/i }));
+
+    expect(await screen.findByRole("heading", { name: "Choose categories" })).toBeVisible();
+    expect(lastCommandRequest("create_account")).toEqual({
+      name: "Travel cash",
+      accountType: "cash",
+      currency: "MAD",
+      initialBalanceMinor: 0,
+    });
   });
 
   test("account step shows backend validation errors clearly", async () => {
@@ -289,10 +310,10 @@ function mockWalletBootstrap({
       ...accountFixture,
       id: `account-${currentAccounts.length + 1}`,
       name: String(request.name),
-      accountType: String(request.accountType),
-      currency: String(request.currency),
-      initialBalanceMinor: Number(request.initialBalanceMinor),
-      balanceMinor: Number(request.initialBalanceMinor),
+      accountType: String(request.accountType ?? "cash"),
+      currency: String(request.currency ?? "MAD"),
+      initialBalanceMinor: Number(request.initialBalanceMinor ?? 0),
+      balanceMinor: Number(request.initialBalanceMinor ?? 0),
     };
     currentAccounts = [...currentAccounts, account];
     return account;

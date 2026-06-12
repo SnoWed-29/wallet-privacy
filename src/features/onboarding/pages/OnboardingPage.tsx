@@ -17,7 +17,6 @@ import {
   defaultBudgetForm,
   defaultRecurringBillForm,
   normalAmountToMinor,
-  optionalNormalAmountToMinor,
   savingContributionCategoryName,
 } from "../../../utils/walletHelpers";
 import { AccountStep, type AccountStepState } from "../components/AccountStep";
@@ -74,9 +73,6 @@ export function OnboardingPage({ onComplete }: OnboardingPageProps) {
   const [accountCreated, setAccountCreated] = useState(false);
   const [accountForm, setAccountForm] = useState<AccountStepState>({
     accountName: "",
-    accountType: "cash",
-    currency: "MAD",
-    initialBalance: "",
   });
   const [selectedCategories, setSelectedCategories] = useState<string[]>(
     recommendedCategories.map(categoryKey),
@@ -117,18 +113,15 @@ export function OnboardingPage({ onComplete }: OnboardingPageProps) {
   async function handleAccountSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (accountCreated || wallet.accounts.length > 0 || summary.importedData) {
+    if (accountCreated || summary.importedData) {
       goTo("categories");
       return;
     }
 
-    const amountMinor = optionalNormalAmountToMinor(accountForm.initialBalance);
-    if (!accountForm.accountName.trim()) {
+    const accountName = accountForm.accountName.trim();
+
+    if (!accountName) {
       toast.warning("Enter an account name to continue.", "Account required");
-      return;
-    }
-    if (amountMinor === null) {
-      toast.warning("Enter a valid starting balance.", "Check account balance");
       return;
     }
 
@@ -136,10 +129,10 @@ export function OnboardingPage({ onComplete }: OnboardingPageProps) {
     try {
       await invoke<Account>("create_account", {
         request: {
-          name: accountForm.accountName,
-          accountType: accountForm.accountType,
-          currency: accountForm.currency || "MAD",
-          initialBalanceMinor: amountMinor,
+          name: accountName,
+          currency: "MAD",
+          accountType: "cash",
+          initialBalanceMinor: 0,
         },
       });
       setAccountCreated(true);

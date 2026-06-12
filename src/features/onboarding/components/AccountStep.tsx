@@ -1,12 +1,9 @@
 import type { FormEvent, ReactNode } from "react";
 import { WalletCards } from "lucide-react";
-import { AppButton, AppInput, AppSelect } from "../../../components/ui";
+import { AppButton, AppInput } from "../../../components/ui";
 
 type AccountStepProps = {
   accountName: string;
-  accountType: string;
-  currency: string;
-  initialBalance: string;
   isSaving: boolean;
   onBack: () => void;
   onChange: (changes: Partial<AccountStepState>) => void;
@@ -15,16 +12,10 @@ type AccountStepProps = {
 
 export type AccountStepState = {
   accountName: string;
-  accountType: string;
-  currency: string;
-  initialBalance: string;
 };
 
 export function AccountStep({
   accountName,
-  accountType,
-  currency,
-  initialBalance,
   isSaving,
   onBack,
   onChange,
@@ -37,7 +28,7 @@ export function AccountStep({
         icon={<WalletCards className="h-6 w-6" aria-hidden="true" />}
         title="Create your first account"
       />
-      <div className="grid grid-cols-2 gap-3 max-sm:grid-cols-1">
+      <div className="grid gap-3">
         <label className="grid gap-2">
           <span className="text-sm font-extrabold text-slate-700">Account name</span>
           <AppInput
@@ -45,34 +36,6 @@ export function AccountStep({
             onChange={(event) => onChange({ accountName: event.target.value })}
             placeholder="Cash"
             value={accountName}
-          />
-        </label>
-        <label className="grid gap-2">
-          <span className="text-sm font-extrabold text-slate-700">Account type</span>
-          <AppSelect
-            onChange={(event) => onChange({ accountType: event.target.value })}
-            value={accountType}
-          >
-            <option value="cash">Cash</option>
-            <option value="bank">Bank Account</option>
-            <option value="savings">Savings Account</option>
-            <option value="credit">Credit Card</option>
-          </AppSelect>
-        </label>
-        <label className="grid gap-2">
-          <span className="text-sm font-extrabold text-slate-700">Currency</span>
-          <AppInput
-            onChange={(event) => onChange({ currency: event.target.value })}
-            value={currency}
-          />
-        </label>
-        <label className="grid gap-2">
-          <span className="text-sm font-extrabold text-slate-700">Starting balance</span>
-          <AppInput
-            inputMode="decimal"
-            onChange={(event) => onChange({ initialBalance: event.target.value })}
-            placeholder="0.00"
-            value={initialBalance}
           />
         </label>
       </div>
