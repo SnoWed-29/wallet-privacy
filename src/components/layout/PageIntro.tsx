@@ -1,20 +1,39 @@
-import { AppBadge, AppCard } from "../ui";
+import { ReactNode } from "react";
+import { AppBadge, GlassPanel } from "../ui";
 
 type PageIntroProps = {
-  title: string;
+  actions?: ReactNode;
+  badge?: string;
   description: string;
+  title: string;
 };
 
-export function PageIntro({ title, description }: PageIntroProps) {
+export function PageIntro({
+  actions,
+  badge,
+  description,
+  title,
+}: PageIntroProps) {
   return (
-    <AppCard className="overflow-hidden border-slate-200 bg-gradient-to-br from-white via-white to-emerald-50/70">
-      <div className="max-w-3xl">
-        <AppBadge variant="neutral">{title}</AppBadge>
-        <h2 className="mt-4 text-3xl font-extrabold tracking-tight text-app-text">
-          {title}
-        </h2>
-        <p className="mt-2 text-base text-app-muted">{description}</p>
+    <GlassPanel
+      as="section"
+      className="overflow-hidden p-5 sm:p-6"
+      tone="light"
+    >
+      <div className="flex items-start justify-between gap-6 max-md:flex-col">
+        <div className="min-w-0 max-w-3xl">
+          {badge ?? title ? (
+            <AppBadge variant="primary">{badge ?? title}</AppBadge>
+          ) : null}
+          <h2 className="mt-4 text-page text-app-text">{title}</h2>
+          <p className="mt-2 text-base leading-6 text-app-muted">{description}</p>
+        </div>
+        {actions ? (
+          <div className="flex flex-wrap justify-end gap-2 max-md:justify-start">
+            {actions}
+          </div>
+        ) : null}
       </div>
-    </AppCard>
+    </GlassPanel>
   );
 }

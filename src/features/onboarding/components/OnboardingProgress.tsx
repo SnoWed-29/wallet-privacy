@@ -26,18 +26,20 @@ export function OnboardingProgress({ currentStep }: { currentStep: OnboardingSte
         return (
           <li
             aria-current={isActive ? "step" : undefined}
-            className={`flex min-w-fit items-center gap-2 rounded-full border px-3.5 py-2 font-extrabold transition motion-reduce:transition-none ${
+            className={`flex min-w-fit items-center gap-2 rounded-full border px-3.5 py-2 font-semibold transition motion-reduce:transition-none ${
               isActive
-                ? "border-app-primary bg-emerald-50 text-app-text shadow-app-soft"
+                ? "border-app-primary/24 bg-app-primary/10 text-app-text shadow-app-soft"
                 : isComplete
-                  ? "border-emerald-200 bg-white text-emerald-800"
-                  : "border-app-border bg-white text-app-muted"
+                  ? "border-app-peach/28 bg-white/58 text-app-primary"
+                  : "border-[rgba(60,38,52,0.08)] bg-white/42 text-app-muted"
             }`}
             key={step}
           >
             <span
-              className={`grid h-7 w-7 place-items-center rounded-full text-xs ${
-                isActive || isComplete ? "bg-app-primary text-white" : "bg-slate-100 text-app-muted"
+              className={`grid h-7 w-7 place-items-center rounded-full text-caption font-semibold ${
+                isActive || isComplete
+                  ? "bg-app-primary text-white"
+                  : "bg-white/72 text-app-muted"
               }`}
             >
               {index + 1}

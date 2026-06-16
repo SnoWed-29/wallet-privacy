@@ -1,3 +1,12 @@
+@font-face {
+  font-family: "Funnel Display";
+  src: url("../assets/fonts/funnel-display/FunnelDisplay.ttf")
+    format("truetype");
+  font-display: swap;
+  font-style: normal;
+  font-weight: 300 800;
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -16,10 +25,34 @@
 
 @layer base {
   :root {
-    color: theme("colors.app.text");
-    background: theme("colors.app.background");
+    --color-primary: 156 67 166;
+    --color-coral: 219 81 94;
+    --color-peach: 254 168 106;
+    --color-text: 33 27 34;
+    --color-muted: 116 107 117;
+    --color-background: 248 242 243;
+    --color-surface: 255 255 255;
+    --color-border: 255 255 255;
+    --color-border-dark: 60 38 52;
+    --color-success: 40 143 95;
+    --color-warning: 180 117 22;
+    --color-danger: 201 61 75;
+    --color-info: 88 98 170;
+    --color-income: 40 143 95;
+    --color-expense: 219 81 94;
+    --surface-strong: rgba(255, 255, 255, 0.86);
+    --surface-glass: rgba(255, 255, 255, 0.68);
+    --surface-glass-light: rgba(255, 255, 255, 0.48);
+    --border-glass: rgba(255, 255, 255, 0.72);
+    --border-subtle: rgba(60, 38, 52, 0.08);
+    --shadow-soft: 0 12px 34px rgba(60, 38, 52, 0.08);
+    --shadow-card: 0 18px 48px rgba(60, 38, 52, 0.1);
+    --shadow-float: 0 24px 60px rgba(60, 38, 52, 0.14);
+    --focus-ring: 0 0 0 4px rgba(156, 67, 166, 0.18);
+    color: rgb(var(--color-text));
+    background: rgb(var(--color-background));
     font-family:
-      "Plus Jakarta Sans", Inter, ui-sans-serif, system-ui, -apple-system,
+      "Funnel Display", Inter, ui-sans-serif, system-ui, -apple-system,
       BlinkMacSystemFont, "Segoe UI", sans-serif;
     font-synthesis: none;
     text-rendering: optimizeLegibility;
@@ -33,142 +66,109 @@
   }
 
   html {
+    min-width: 320px;
     scroll-behavior: smooth;
   }
 
   body {
-    @apply m-0 min-h-screen min-w-80 bg-app-background;
+    @apply m-0 min-h-screen min-w-80 bg-app-background text-app-text;
+  }
+
+  body::before {
+    background:
+      radial-gradient(circle at 8% 8%, rgba(219, 81, 94, 0.24), transparent 28rem),
+      radial-gradient(circle at 86% 6%, rgba(254, 168, 106, 0.3), transparent 30rem),
+      radial-gradient(circle at 70% 78%, rgba(156, 67, 166, 0.14), transparent 34rem),
+      linear-gradient(135deg, #fff9f5 0%, #f8f2f3 48%, #f5eef7 100%);
+    content: "";
+    inset: 0;
+    pointer-events: none;
+    position: fixed;
+    z-index: -1;
+  }
+
+  #root {
+    min-height: 100vh;
   }
 
   h1,
   h2,
-  h3 {
-    @apply m-0 text-left text-app-text;
+  h3,
+  p {
+    margin: 0;
   }
 
-  h2 {
-    @apply text-lg font-extrabold leading-snug;
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
   }
 
-  h3 {
-    @apply mb-2.5 mt-5 text-sm font-extrabold uppercase tracking-wide text-slate-700;
+  button {
+    cursor: pointer;
+  }
+
+  button:disabled,
+  input:disabled,
+  select:disabled,
+  textarea:disabled {
+    cursor: not-allowed;
+  }
+
+  :focus-visible {
+    outline: 2px solid rgb(var(--color-primary));
+    outline-offset: 3px;
+  }
+
+  ::selection {
+    background: rgba(156, 67, 166, 0.18);
+    color: rgb(var(--color-text));
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      scroll-behavior: auto !important;
+      transition-duration: 0.01ms !important;
+    }
   }
 }
 
 @layer components {
-  .simple-form,
-  .accounts-section,
-  .list-section {
-    @apply scroll-mt-24 rounded-app border border-app-border bg-app-card p-6 shadow-app;
+  .wallet-app-bg {
+    background:
+      radial-gradient(circle at 5% 4%, rgba(219, 81, 94, 0.22), transparent 25rem),
+      radial-gradient(circle at 92% 2%, rgba(254, 168, 106, 0.28), transparent 28rem),
+      radial-gradient(circle at 82% 84%, rgba(156, 67, 166, 0.14), transparent 34rem),
+      linear-gradient(135deg, #fff9f5 0%, #f8f2f3 50%, #f6eff8 100%);
   }
 
-  .simple-form {
-    @apply grid gap-3;
+  .glass-surface {
+    background: var(--surface-glass);
+    border: 1px solid var(--border-glass);
+    box-shadow: var(--shadow-card);
+    backdrop-filter: blur(20px);
   }
 
-  .simple-form label {
-    @apply text-sm font-extrabold text-slate-700;
+  .glass-surface-strong {
+    background: var(--surface-strong);
+    border: 1px solid var(--border-glass);
+    box-shadow: var(--shadow-card);
+    backdrop-filter: blur(20px);
   }
 
-  .form-row {
-    @apply flex gap-2.5 max-sm:flex-col;
+  .glass-surface-light {
+    background: var(--surface-glass-light);
+    border: 1px solid var(--border-glass);
+    box-shadow: var(--shadow-soft);
+    backdrop-filter: blur(18px);
   }
 
-  .form-grid {
-    @apply grid grid-cols-2 gap-2.5 max-sm:grid-cols-1;
-  }
-
-  .form-grid button {
-    @apply col-span-full;
-  }
-
-  input,
-  select {
-    @apply w-full min-w-0 rounded-app-sm border border-slate-300 bg-slate-50 px-3.5 py-3 text-sm text-app-text outline-none transition focus:border-slate-500 focus:bg-white focus:ring-4 focus:ring-slate-500/15;
-  }
-
-  select {
-    @apply min-w-36;
-  }
-
-  button {
-    @apply inline-flex min-h-10 cursor-pointer items-center justify-center rounded-app-sm border border-slate-900 bg-slate-900 px-4 py-2 text-sm font-extrabold text-white shadow-[0_10px_22px_rgba(17,24,39,0.14)] transition hover:-translate-y-px hover:border-slate-700 hover:bg-slate-700 hover:shadow-app-soft focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-500/20 active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0;
-  }
-
-  .button-row {
-    @apply flex flex-wrap gap-2;
-  }
-
-  .button-row button {
-    @apply min-h-9 px-3 py-2;
-  }
-
-  .button-row button + button {
-    @apply border-app-border bg-white text-slate-700 shadow-none hover:bg-slate-50;
-  }
-
-  .error {
-    @apply m-0 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-red-800;
-  }
-
-  .section-heading {
-    @apply mb-4 flex items-center justify-between gap-4 max-sm:flex-col max-sm:items-stretch;
-  }
-
-  .summary-grid {
-    @apply mb-5 grid grid-cols-[repeat(auto-fit,minmax(180px,1fr))] gap-3;
-  }
-
-  .summary-grid div {
-    @apply rounded-xl border border-app-border bg-slate-50 p-4;
-  }
-
-  .summary-grid span,
-  .summary-grid strong {
-    @apply block;
-  }
-
-  .summary-grid span {
-    @apply text-sm font-bold text-app-muted;
-  }
-
-  .summary-grid strong {
-    @apply mt-2 text-xl font-extrabold text-app-text;
-  }
-
-  .empty {
-    @apply mt-2.5 text-app-muted;
-  }
-
-  .accounts-list,
-  .simple-list {
-    @apply mt-3 grid list-none gap-2.5 p-0;
-  }
-
-  .accounts-list li,
-  .simple-list li {
-    @apply flex items-center justify-between gap-4 rounded-xl border border-app-border bg-slate-50/70 p-4 max-sm:flex-col max-sm:items-stretch;
-  }
-
-  .accounts-list span,
-  .simple-list span {
-    @apply font-extrabold text-app-text;
-  }
-
-  .accounts-list small,
-  .simple-list small {
-    @apply mt-1 block leading-relaxed text-app-muted;
-  }
-
-  .transaction-item > div:first-child {
-    @apply grid gap-1;
-  }
-
-  .edit-form {
-    @apply grid w-full grid-cols-2 gap-2.5 max-sm:grid-cols-1;
-  }
-
-  .edit-form .button-row {
-    @apply col-span-full;
+  .glass-divider {
+    border-color: var(--border-subtle);
   }
 }

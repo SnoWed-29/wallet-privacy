@@ -1,48 +1,98 @@
-import { ReactNode } from "react";
-import { AppButton } from "./AppButton";
+import { ReactNode, useEffect, useRef } from "react";
+import { X } from "lucide-react";
+import { IconButton } from "./AppButton";
 
 type AppModalProps = {
+  children: ReactNode;
+  description?: string;
+  onClose: () => void;
   open: boolean;
   title: string;
-  description?: string;
-  children: ReactNode;
-  onClose: () => void;
 };
 
 export function AppModal({
+  children,
+  description,
+  onClose,
   open,
   title,
-  description,
-  children,
-  onClose,
 }: AppModalProps) {
+  const dialogRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    const previousActiveElement = document.activeElement as HTMLElement | null;
+    dialogRef.current?.focus();
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        onClose();
+        return;
+      }
+
+      if (event.key !== "Tab" || !dialogRef.current) {
+        return;
+      }
+
+      const focusable = dialogRef.current.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      );
+
+      if (focusable.length === 0) {
+        event.preventDefault();
+        return;
+      }
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    }
+
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      previousActiveElement?.focus?.();
+    };
+  }, [open]);
+
   if (!open) {
     return null;
   }
 
   return (
     <div
-      className="fixed inset-0 z-50 grid place-items-center bg-slate-950/45 p-6 max-sm:p-4"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="app-modal-title"
+      className="fixed inset-0 z-50 grid place-items-center bg-[rgba(33,27,34,0.34)] p-6 backdrop-blur-sm max-sm:p-4"
+      role="presentation"
     >
-      <div className="max-h-[calc(100vh-3rem)] w-full max-w-2xl overflow-y-auto rounded-app border border-app-border bg-white p-6 shadow-app max-sm:p-4">
+      <div
+        aria-labelledby="app-modal-title"
+        aria-modal="true"
+        className="glass-surface-strong max-h-[calc(100vh-3rem)] w-full max-w-2xl overflow-y-auto rounded-app-lg p-6 shadow-app-float max-sm:p-4"
+        ref={dialogRef}
+        role="dialog"
+        tabIndex={-1}
+      >
         <div className="mb-5 flex items-start justify-between gap-4">
-          <div>
-            <h2
-              className="text-lg font-extrabold leading-snug text-app-text"
-              id="app-modal-title"
-            >
+          <div className="min-w-0">
+            <h2 className="text-card text-app-text" id="app-modal-title">
               {title}
             </h2>
             {description ? (
-              <p className="mt-1 text-sm text-app-muted">{description}</p>
+              <p className="mt-1.5 text-sm leading-6 text-app-muted">{description}</p>
             ) : null}
           </div>
-          <AppButton aria-label="Close modal" onClick={onClose} variant="ghost">
-            Close
-          </AppButton>
+          <IconButton icon={X} label="Close modal" onClick={onClose} />
         </div>
         {children}
       </div>

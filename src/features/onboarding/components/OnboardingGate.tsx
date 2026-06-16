@@ -9,8 +9,8 @@ export function OnboardingGate({ children }: { children: ReactNode }) {
 
   if (onboarding.status === "checking") {
     return (
-      <main className="grid min-h-screen place-items-center bg-app-background p-6">
-        <div className="rounded-app border border-app-border bg-white p-6 text-sm font-extrabold text-app-muted shadow-app">
+      <main className="wallet-app-bg grid min-h-screen place-items-center p-6">
+        <div className="glass-surface-strong rounded-app p-6 text-sm font-semibold text-app-muted">
           Preparing your local wallet...
         </div>
       </main>
