@@ -237,10 +237,10 @@ export function DataBackupSection() {
           </ActionCard>
         </div>
 
-        <div className="rounded-app-sm border border-app-border bg-slate-50/70 p-4">
+        <div className="rounded-app-sm border border-[rgba(60,38,52,0.08)] bg-white/48 p-4">
           <div className="mb-3 flex items-center gap-2">
             <HelpCircle className="h-5 w-5 text-app-primary" aria-hidden="true" />
-            <h3 className="m-0 text-base font-extrabold normal-case tracking-normal text-app-text">
+            <h3 className="text-card text-app-text">
               Information & Help
             </h3>
           </div>
@@ -273,14 +273,14 @@ function ActionCard({
   title: string;
 }) {
   return (
-    <div className="rounded-app-sm border border-app-border bg-white p-4 shadow-sm">
+    <div className="rounded-app-sm border border-[rgba(60,38,52,0.08)] bg-white/48 p-4 shadow-app-soft">
       <div className="mb-4 flex items-start justify-between gap-4">
         <div className="flex gap-3">
-          <div className="grid h-10 w-10 flex-none place-items-center rounded-app-sm bg-emerald-50 text-app-primary ring-1 ring-emerald-100">
+          <div className="grid h-10 w-10 flex-none place-items-center rounded-app-sm bg-app-primary/10 text-app-primary ring-1 ring-app-primary/10">
             {icon}
           </div>
           <div>
-            <h3 className="m-0 text-base font-extrabold normal-case tracking-normal text-app-text">
+            <h3 className="text-card text-app-text">
               {title}
             </h3>
             <p className="mt-1 text-sm leading-relaxed text-app-muted">{description}</p>
@@ -295,8 +295,8 @@ function ActionCard({
 
 function InfoItem({ label, text }: { label: string; text: string }) {
   return (
-    <div className="rounded-app-sm border border-app-border bg-white p-3">
-      <p className="font-extrabold text-app-text">{label}</p>
+    <div className="rounded-app-sm border border-[rgba(60,38,52,0.08)] bg-white/48 p-3">
+      <p className="font-semibold text-app-text">{label}</p>
       <p className="mt-1 text-app-muted">{text}</p>
     </div>
   );
@@ -406,12 +406,12 @@ export function ImportWorkflowModal({
       <div className="grid gap-4">
         <StepHeader current={result ? 5 : preview ? 3 : 1} labels={["Select", "Preview", "Mode", "Confirm", "Result"]} />
 
-        <section className="grid gap-3 rounded-app-sm border border-app-border bg-slate-50/70 p-4">
-          <h3 className="m-0 text-sm font-extrabold uppercase tracking-wide text-app-muted">
+        <section className="grid gap-3 rounded-app-sm border border-[rgba(60,38,52,0.08)] bg-white/48 p-4">
+          <h3 className="text-caption font-semibold uppercase tracking-[0.08em] text-app-muted">
             Step 1: Select File
           </h3>
           <label className="grid gap-2">
-            <span className="text-sm font-extrabold text-slate-700">Wallet JSON file</span>
+            <span className="text-caption font-semibold uppercase tracking-[0.08em] text-app-muted">Wallet JSON file</span>
             <AppInput
               accept="application/json,.json"
               disabled={isValidating || isImporting}
@@ -420,7 +420,7 @@ export function ImportWorkflowModal({
             />
           </label>
           {isValidating ? (
-            <p className="text-sm font-extrabold text-app-muted">Validating import file...</p>
+            <p className="text-sm font-semibold text-app-muted">Validating import file...</p>
           ) : null}
         </section>
 
@@ -433,8 +433,8 @@ export function ImportWorkflowModal({
               warnings={preview.warnings}
             />
 
-            <section className="grid gap-3 rounded-app-sm border border-app-border bg-white p-4">
-              <h3 className="m-0 text-sm font-extrabold uppercase tracking-wide text-app-muted">
+            <section className="grid gap-3 rounded-app-sm border border-[rgba(60,38,52,0.08)] bg-white/54 p-4">
+              <h3 className="text-caption font-semibold uppercase tracking-[0.08em] text-app-muted">
                 Step 3: Choose Mode
               </h3>
               <div className="grid grid-cols-2 gap-3 max-sm:grid-cols-1">
@@ -456,17 +456,17 @@ export function ImportWorkflowModal({
               </div>
             </section>
 
-            <section className="grid gap-3 rounded-app-sm border border-app-border bg-white p-4">
-              <h3 className="m-0 text-sm font-extrabold uppercase tracking-wide text-app-muted">
+            <section className="grid gap-3 rounded-app-sm border border-[rgba(60,38,52,0.08)] bg-white/54 p-4">
+              <h3 className="text-caption font-semibold uppercase tracking-[0.08em] text-app-muted">
                 Step 4: Confirm
               </h3>
               {mode === "replace" ? (
                 <div className="grid gap-3">
-                  <p className="rounded-app-sm border border-red-200 bg-red-50 p-3 text-sm font-extrabold text-red-800">
+                  <p className="rounded-app-sm border border-app-danger/18 bg-app-danger/8 p-3 text-sm font-semibold text-app-danger">
                     Replacing data will clear current Wallet records before importing this file.
                   </p>
                   <label className="grid gap-2">
-                    <span className="text-sm font-extrabold text-red-700">
+                    <span className="text-sm font-semibold text-app-danger">
                       Type REPLACE to confirm
                     </span>
                     <AppInput
@@ -606,12 +606,12 @@ function RestoreWorkflowModal({ open, onClose }: { open: boolean; onClose: () =>
       <div className="grid gap-4">
         <StepHeader current={result ? 5 : preview ? 3 : 1} labels={["Select", "Preview", "Warning", "Confirm", "Result"]} />
 
-        <section className="grid gap-3 rounded-app-sm border border-app-border bg-slate-50/70 p-4">
-          <h3 className="m-0 text-sm font-extrabold uppercase tracking-wide text-app-muted">
+        <section className="grid gap-3 rounded-app-sm border border-[rgba(60,38,52,0.08)] bg-white/48 p-4">
+          <h3 className="text-caption font-semibold uppercase tracking-[0.08em] text-app-muted">
             Step 1: Select Backup
           </h3>
           <label className="grid gap-2">
-            <span className="text-sm font-extrabold text-slate-700">Wallet backup JSON file</span>
+            <span className="text-caption font-semibold uppercase tracking-[0.08em] text-app-muted">Wallet backup JSON file</span>
             <AppInput
               accept="application/json,.json"
               disabled={isValidating || isRestoring}
@@ -620,7 +620,7 @@ function RestoreWorkflowModal({ open, onClose }: { open: boolean; onClose: () =>
             />
           </label>
           {isValidating ? (
-            <p className="text-sm font-extrabold text-app-muted">Validating backup file...</p>
+            <p className="text-sm font-semibold text-app-muted">Validating backup file...</p>
           ) : null}
         </section>
 
@@ -633,25 +633,25 @@ function RestoreWorkflowModal({ open, onClose }: { open: boolean; onClose: () =>
               warnings={preview.warnings}
             />
 
-            <section className="grid gap-3 rounded-app-sm border border-red-200 bg-red-50 p-4">
-              <h3 className="m-0 text-sm font-extrabold uppercase tracking-wide text-red-700">
+            <section className="grid gap-3 rounded-app-sm border border-app-danger/18 bg-app-danger/8 p-4">
+              <h3 className="text-caption font-semibold uppercase tracking-[0.08em] text-app-danger">
                 Step 3: Warning
               </h3>
-              <p className="text-sm font-extrabold text-red-800">
+              <p className="text-sm font-semibold text-app-danger">
                 Restoring a backup will replace your current Wallet data.
               </p>
-              <p className="text-sm leading-relaxed text-red-800">
+              <p className="text-sm leading-relaxed text-app-danger">
                 Wallet creates a safety backup first, then replaces current records with the
                 selected backup.
               </p>
             </section>
 
-            <section className="grid gap-3 rounded-app-sm border border-app-border bg-white p-4">
-              <h3 className="m-0 text-sm font-extrabold uppercase tracking-wide text-app-muted">
+            <section className="grid gap-3 rounded-app-sm border border-[rgba(60,38,52,0.08)] bg-white/54 p-4">
+              <h3 className="text-caption font-semibold uppercase tracking-[0.08em] text-app-muted">
                 Step 4: Confirm Restore
               </h3>
               <label className="grid gap-2">
-                <span className="text-sm font-extrabold text-red-700">
+                <span className="text-sm font-semibold text-app-danger">
                   Type RESTORE to confirm
                 </span>
                 <AppInput
@@ -676,8 +676,8 @@ function RestoreWorkflowModal({ open, onClose }: { open: boolean; onClose: () =>
         ) : null}
 
         {result ? (
-          <section className="rounded-app-sm border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
-            <h3 className="m-0 font-extrabold">Step 5: Result</h3>
+          <section className="rounded-app-sm border border-app-success/18 bg-app-success/8 p-4 text-sm text-app-success">
+            <h3 className="font-semibold">Step 5: Result</h3>
             <p className="mt-1">
               Restored {totalCounts(result.restored.imported)} records. A safety backup was created
               first at {result.safetyBackupCreatedAt}.
@@ -694,15 +694,15 @@ function RestoreWorkflowModal({ open, onClose }: { open: boolean; onClose: () =>
 
 function StepHeader({ current, labels }: { current: number; labels: string[] }) {
   return (
-    <ol className="grid grid-cols-5 gap-2 text-xs font-extrabold text-app-muted max-sm:grid-cols-1">
+    <ol className="grid grid-cols-5 gap-2 text-caption font-semibold text-app-muted max-sm:grid-cols-1">
       {labels.map((label, index) => {
         const step = index + 1;
         return (
           <li
             className={`rounded-app-sm border px-3 py-2 ${
               step <= current
-                ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-                : "border-app-border bg-white"
+                ? "border-app-primary/18 bg-app-primary/10 text-app-primary"
+                : "border-[rgba(60,38,52,0.08)] bg-white/48"
             }`}
             key={label}
           >
@@ -726,12 +726,12 @@ function PreviewPanel({
   warnings: string[];
 }) {
   return (
-    <section className="grid gap-3 rounded-app-sm border border-app-border bg-white p-4">
+    <section className="grid gap-3 rounded-app-sm border border-[rgba(60,38,52,0.08)] bg-white/54 p-4">
       <div>
-        <h3 className="m-0 text-sm font-extrabold uppercase tracking-wide text-app-muted">
+        <h3 className="text-caption font-semibold uppercase tracking-[0.08em] text-app-muted">
           Step 2: Validation & Preview
         </h3>
-        <p className="mt-2 font-extrabold text-app-text">{fileName}</p>
+        <p className="mt-2 font-semibold text-app-text">{fileName}</p>
         <p className="text-sm text-app-muted">{subtitle}</p>
       </div>
       <div className="grid grid-cols-3 gap-3 text-sm max-sm:grid-cols-2">
@@ -743,8 +743,8 @@ function PreviewPanel({
         <SummaryItem label="Savings Goals" value={summary.savingsGoals} />
       </div>
       {warnings.length ? (
-        <div className="rounded-app-sm border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
-          <p className="font-extrabold">Warnings</p>
+        <div className="rounded-app-sm border border-app-warning/18 bg-app-warning/10 p-3 text-sm text-app-warning">
+          <p className="font-semibold">Warnings</p>
           <ul className="mt-2 list-disc space-y-1 pl-5">
             {warnings.map((warning) => (
               <li key={warning}>{warning}</li>
@@ -769,13 +769,13 @@ function ModeOption({
 }) {
   return (
     <button
-      className={`rounded-app-sm border p-3 text-left transition focus:outline-none focus:ring-4 focus:ring-emerald-500/20 ${
-        checked ? "border-app-primary bg-emerald-50" : "border-app-border bg-white hover:bg-slate-50"
+      className={`rounded-app-sm border p-3 text-left transition focus:outline-none focus:ring-4 focus:ring-app-primary/20 ${
+        checked ? "border-app-primary/28 bg-app-primary/10" : "border-[rgba(60,38,52,0.08)] bg-white/48 hover:bg-white/72"
       }`}
       onClick={onClick}
       type="button"
     >
-      <span className="block font-extrabold text-app-text">{label}</span>
+      <span className="block font-semibold text-app-text">{label}</span>
       <span className="mt-1 block text-sm text-app-muted">{description}</span>
     </button>
   );
@@ -783,8 +783,8 @@ function ModeOption({
 
 function ResultPanel({ result }: { result: ImportResult }) {
   return (
-    <section className="rounded-app-sm border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
-      <h3 className="m-0 font-extrabold">Step 5: Result</h3>
+    <section className="rounded-app-sm border border-app-success/18 bg-app-success/8 p-4 text-sm text-app-success">
+      <h3 className="font-semibold">Step 5: Result</h3>
       <p className="mt-1">
         {result.mode === "replace" ? "Replaced data with" : "Imported"}{" "}
         {totalCounts(result.imported)} records. Skipped {totalCounts(result.skipped)} duplicates
@@ -796,9 +796,9 @@ function ResultPanel({ result }: { result: ImportResult }) {
 
 function SummaryItem({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-app-sm border border-app-border bg-slate-50/70 p-3">
-      <p className="text-xs font-extrabold uppercase tracking-wide text-app-muted">{label}</p>
-      <p className="mt-1 text-xl font-extrabold text-app-text">{value}</p>
+    <div className="rounded-app-sm border border-[rgba(60,38,52,0.08)] bg-white/48 p-3">
+      <p className="text-caption font-semibold uppercase tracking-[0.08em] text-app-muted">{label}</p>
+      <p className="mt-1 text-xl font-bold text-app-text">{value}</p>
     </div>
   );
 }

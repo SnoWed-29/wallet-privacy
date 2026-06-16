@@ -9,6 +9,7 @@ import {
   Search,
   Trash2,
 } from "lucide-react";
+import { PageIntro } from "../../../components/layout/PageIntro";
 import {
   AppBadge,
   AppButton,
@@ -17,6 +18,12 @@ import {
   AppSelect,
   AppTable,
   EmptyState,
+  FormField,
+  FormSection,
+  IconButton,
+  TableBody,
+  TableCell,
+  TableHeader,
 } from "../../../components/ui";
 import {
   type Account,
@@ -28,7 +35,6 @@ import {
 } from "../types";
 
 type SortKey = "date" | "amount" | "type" | "category" | "account";
-
 type SortDirection = "asc" | "desc";
 
 type TransactionsPageProps = {
@@ -158,82 +164,111 @@ export function TransactionsPage({
 
   return (
     <section className="grid gap-5">
-      <AppCard className="overflow-hidden border-slate-200 bg-gradient-to-br from-white via-white to-emerald-50/70">
-        <div className="flex items-start justify-between gap-6 max-md:flex-col">
-          <div className="max-w-2xl">
-            <AppBadge variant="neutral">Transactions</AppBadge>
-            <h2 className="mt-4 text-3xl font-extrabold tracking-tight text-app-text">
-              Transactions
-            </h2>
-            <p className="mt-2 text-base text-app-muted">
-              View, search, filter, create, edit, and delete your local
-              transaction history.
-            </p>
-          </div>
-          <AppButton onClick={scrollToCreateForm} variant="primary">
-            <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
+      <PageIntro
+        actions={
+          <AppButton
+            icon={<Plus className="h-4 w-4" aria-hidden="true" />}
+            onClick={scrollToCreateForm}
+            variant="primary"
+          >
             Add Transaction
           </AppButton>
-        </div>
-      </AppCard>
+        }
+        badge="Transactions"
+        description="View, search, filter, create, edit, and delete your local transaction history."
+        title="Transactions"
+      />
 
       <AppCard
         description="Add a new income or expense without leaving the transactions page."
         id="add-transaction-form"
         title="Record money movement"
+        tone="strong"
       >
         <form className="grid gap-4" onSubmit={onCreateTransaction}>
-          <div className="grid grid-cols-3 gap-3 max-xl:grid-cols-2 max-md:grid-cols-1">
-            <AppSelect
-              value={transactionAccountId}
-              onChange={(event) => setTransactionAccountId(event.target.value)}
-            >
-              <option value="">Select account</option>
-              {accounts.map((account) => (
-                <option key={account.id} value={account.id}>
-                  {account.name}
-                </option>
-              ))}
-            </AppSelect>
-            <AppSelect
-              value={transactionType}
-              onChange={(event) =>
-                setTransactionType(event.target.value as TransactionType)
-              }
-            >
-              <option value="expense">Expense</option>
-              <option value="income">Income</option>
-            </AppSelect>
-            <AppSelect
-              value={transactionCategoryId}
-              onChange={(event) => setTransactionCategoryId(event.target.value)}
-            >
-              <option value="">Select category</option>
-              {matchingCategories.map((category) => (
-                <option key={category.id} value={category.id}>
-                  {category.name}
-                </option>
-              ))}
-            </AppSelect>
-            <AppInput
-              value={transactionAmount}
-              onChange={(event) => setTransactionAmount(event.target.value)}
-              inputMode="decimal"
-              placeholder="Amount"
-            />
-            <AppInput
-              value={transactionDescription}
-              onChange={(event) =>
-                setTransactionDescription(event.target.value)
-              }
-              placeholder="Description"
-            />
-            <AppInput
-              type="date"
-              value={transactionDate}
-              onChange={(event) => setTransactionDate(event.target.value)}
-            />
-          </div>
+          <FormSection>
+            <div className="grid grid-cols-3 gap-3 max-xl:grid-cols-2 max-md:grid-cols-1">
+              <FormField label="Account">
+                {(id) => (
+                  <AppSelect
+                    id={id}
+                    value={transactionAccountId}
+                    onChange={(event) => setTransactionAccountId(event.target.value)}
+                  >
+                    <option value="">Select account</option>
+                    {accounts.map((account) => (
+                      <option key={account.id} value={account.id}>
+                        {account.name}
+                      </option>
+                    ))}
+                  </AppSelect>
+                )}
+              </FormField>
+              <FormField label="Type">
+                {(id) => (
+                  <AppSelect
+                    id={id}
+                    value={transactionType}
+                    onChange={(event) =>
+                      setTransactionType(event.target.value as TransactionType)
+                    }
+                  >
+                    <option value="expense">Expense</option>
+                    <option value="income">Income</option>
+                  </AppSelect>
+                )}
+              </FormField>
+              <FormField label="Category">
+                {(id) => (
+                  <AppSelect
+                    id={id}
+                    value={transactionCategoryId}
+                    onChange={(event) => setTransactionCategoryId(event.target.value)}
+                  >
+                    <option value="">Select category</option>
+                    {matchingCategories.map((category) => (
+                      <option key={category.id} value={category.id}>
+                        {category.name}
+                      </option>
+                    ))}
+                  </AppSelect>
+                )}
+              </FormField>
+              <FormField label="Amount">
+                {(id) => (
+                  <AppInput
+                    id={id}
+                    value={transactionAmount}
+                    onChange={(event) => setTransactionAmount(event.target.value)}
+                    inputMode="decimal"
+                    placeholder="Amount"
+                  />
+                )}
+              </FormField>
+              <FormField label="Description">
+                {(id) => (
+                  <AppInput
+                    id={id}
+                    value={transactionDescription}
+                    onChange={(event) =>
+                      setTransactionDescription(event.target.value)
+                    }
+                    placeholder="Description"
+                  />
+                )}
+              </FormField>
+              <FormField label="Date">
+                {(id) => (
+                  <AppInput
+                    id={id}
+                    type="date"
+                    value={transactionDate}
+                    onChange={(event) => setTransactionDate(event.target.value)}
+                  />
+                )}
+              </FormField>
+            </div>
+          </FormSection>
           <div className="flex justify-end">
             <AppButton
               disabled={
@@ -256,73 +291,103 @@ export function TransactionsPage({
       >
         <form className="grid gap-4" onSubmit={onApplyFilters}>
           <div className="grid grid-cols-3 gap-3 max-xl:grid-cols-2 max-md:grid-cols-1">
-            <AppInput
-              value={transactionFilters.search}
-              onChange={(event) =>
-                onUpdateTransactionFilter({ search: event.target.value })
-              }
-              placeholder="Search by description or notes"
-            />
-            <AppSelect
-              value={transactionFilters.categoryId}
-              onChange={(event) =>
-                onUpdateTransactionFilter({ categoryId: event.target.value })
-              }
-            >
-              <option value="">All categories</option>
-              {categories.map((category) => (
-                <option key={category.id} value={category.id}>
-                  {category.name}
-                </option>
-              ))}
-            </AppSelect>
-            <AppSelect
-              value={transactionFilters.accountId}
-              onChange={(event) =>
-                onUpdateTransactionFilter({ accountId: event.target.value })
-              }
-            >
-              <option value="">All accounts</option>
-              {accounts.map((account) => (
-                <option key={account.id} value={account.id}>
-                  {account.name}
-                </option>
-              ))}
-            </AppSelect>
-            <AppSelect
-              value={transactionFilters.transactionType}
-              onChange={(event) =>
-                onUpdateTransactionFilter({
-                  transactionType: event.target.value as TransactionType | "",
-                })
-              }
-            >
-              <option value="">All types</option>
-              <option value="expense">Expense</option>
-              <option value="income">Income</option>
-            </AppSelect>
-            <AppInput
-              type="date"
-              value={transactionFilters.startDate}
-              onChange={(event) =>
-                onUpdateTransactionFilter({ startDate: event.target.value })
-              }
-            />
-            <AppInput
-              type="date"
-              value={transactionFilters.endDate}
-              onChange={(event) =>
-                onUpdateTransactionFilter({ endDate: event.target.value })
-              }
-            />
+            <FormField label="Search">
+              {(id) => (
+                <AppInput
+                  id={id}
+                  value={transactionFilters.search}
+                  onChange={(event) =>
+                    onUpdateTransactionFilter({ search: event.target.value })
+                  }
+                  placeholder="Search by description or notes"
+                />
+              )}
+            </FormField>
+            <FormField label="Category">
+              {(id) => (
+                <AppSelect
+                  id={id}
+                  value={transactionFilters.categoryId}
+                  onChange={(event) =>
+                    onUpdateTransactionFilter({ categoryId: event.target.value })
+                  }
+                >
+                  <option value="">All categories</option>
+                  {categories.map((category) => (
+                    <option key={category.id} value={category.id}>
+                      {category.name}
+                    </option>
+                  ))}
+                </AppSelect>
+              )}
+            </FormField>
+            <FormField label="Account">
+              {(id) => (
+                <AppSelect
+                  id={id}
+                  value={transactionFilters.accountId}
+                  onChange={(event) =>
+                    onUpdateTransactionFilter({ accountId: event.target.value })
+                  }
+                >
+                  <option value="">All accounts</option>
+                  {accounts.map((account) => (
+                    <option key={account.id} value={account.id}>
+                      {account.name}
+                    </option>
+                  ))}
+                </AppSelect>
+              )}
+            </FormField>
+            <FormField label="Type">
+              {(id) => (
+                <AppSelect
+                  id={id}
+                  value={transactionFilters.transactionType}
+                  onChange={(event) =>
+                    onUpdateTransactionFilter({
+                      transactionType: event.target.value as TransactionType | "",
+                    })
+                  }
+                >
+                  <option value="">All types</option>
+                  <option value="expense">Expense</option>
+                  <option value="income">Income</option>
+                </AppSelect>
+              )}
+            </FormField>
+            <FormField label="Start date">
+              {(id) => (
+                <AppInput
+                  id={id}
+                  type="date"
+                  value={transactionFilters.startDate}
+                  onChange={(event) =>
+                    onUpdateTransactionFilter({ startDate: event.target.value })
+                  }
+                />
+              )}
+            </FormField>
+            <FormField label="End date">
+              {(id) => (
+                <AppInput
+                  id={id}
+                  type="date"
+                  value={transactionFilters.endDate}
+                  onChange={(event) =>
+                    onUpdateTransactionFilter({ endDate: event.target.value })
+                  }
+                />
+              )}
+            </FormField>
           </div>
           <div className="flex flex-wrap justify-end gap-2">
             <AppButton
               disabled={isFilteringTransactions}
+              icon={<Filter className="h-4 w-4" aria-hidden="true" />}
               type="submit"
               variant="secondary"
             >
-              <Filter className="mr-2 h-4 w-4" aria-hidden="true" />
               {isFilteringTransactions ? "Filtering..." : "Apply filters"}
             </AppButton>
             <AppButton onClick={onClearFilters} variant="ghost">
@@ -335,6 +400,7 @@ export function TransactionsPage({
       <AppCard
         description="A complete ledger of your recorded income and expenses."
         title="Transaction table"
+        tone="strong"
       >
         {transactions.length === 0 ? (
           <EmptyState title="No transactions yet">
@@ -343,84 +409,82 @@ export function TransactionsPage({
             </p>
             <AppButton
               className="mt-4"
+              icon={<Search className="h-4 w-4" aria-hidden="true" />}
               onClick={scrollToCreateForm}
               variant="primary"
             >
-              <Search className="mr-2 h-4 w-4" aria-hidden="true" />
               Add Transaction
             </AppButton>
           </EmptyState>
         ) : (
-          <div className="overflow-x-auto">
-            <AppTable>
-              <thead className="bg-slate-50 text-xs uppercase tracking-wide text-app-muted">
-                <tr>
-                  <SortHeader
-                    activeKey={sortKey}
-                    direction={sortDirection}
-                    label="Date"
-                    onSort={updateSort}
-                    sortKey="date"
-                  />
-                  <th className="px-4 py-3 font-extrabold">Description</th>
-                  <SortHeader
-                    activeKey={sortKey}
-                    direction={sortDirection}
-                    label="Category"
-                    onSort={updateSort}
-                    sortKey="category"
-                  />
-                  <SortHeader
-                    activeKey={sortKey}
-                    direction={sortDirection}
-                    label="Account"
-                    onSort={updateSort}
-                    sortKey="account"
-                  />
-                  <SortHeader
-                    activeKey={sortKey}
-                    align="right"
-                    direction={sortDirection}
-                    label="Amount"
-                    onSort={updateSort}
-                    sortKey="amount"
-                  />
-                  <SortHeader
-                    activeKey={sortKey}
-                    direction={sortDirection}
-                    label="Type"
-                    onSort={updateSort}
-                    sortKey="type"
-                  />
-                  <th className="px-4 py-3 text-right font-extrabold">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-app-border">
-                {sortedTransactions.map((transaction) => (
-                  <TransactionRow
-                    accountName={accountNameFor(transaction.accountId)}
-                    categoryName={categoryNameFor(transaction.categoryId)}
-                    deletingTransactionId={deletingTransactionId}
-                    editCategoriesFor={editCategoriesFor}
-                    editTransaction={editTransaction}
-                    editingTransactionId={editingTransactionId}
-                    formatMinor={formatMinor}
-                    isUpdatingTransaction={isUpdatingTransaction}
-                    key={transaction.id}
-                    onCancelEditingTransaction={onCancelEditingTransaction}
-                    onDeleteTransaction={onDeleteTransaction}
-                    onStartEditingTransaction={onStartEditingTransaction}
-                    onUpdateEditTransaction={onUpdateEditTransaction}
-                    onUpdateTransaction={onUpdateTransaction}
-                    accounts={accounts}
-                    transaction={transaction}
-                  />
-                ))}
-              </tbody>
-            </AppTable>
-          </div>
+          <AppTable minWidth="min-w-[58rem]">
+            <TableHeader>
+              <tr>
+                <SortHeader
+                  activeKey={sortKey}
+                  direction={sortDirection}
+                  label="Date"
+                  onSort={updateSort}
+                  sortKey="date"
+                />
+                <TableCell header>Description</TableCell>
+                <SortHeader
+                  activeKey={sortKey}
+                  direction={sortDirection}
+                  label="Category"
+                  onSort={updateSort}
+                  sortKey="category"
+                />
+                <SortHeader
+                  activeKey={sortKey}
+                  direction={sortDirection}
+                  label="Account"
+                  onSort={updateSort}
+                  sortKey="account"
+                />
+                <SortHeader
+                  activeKey={sortKey}
+                  align="right"
+                  direction={sortDirection}
+                  label="Amount"
+                  onSort={updateSort}
+                  sortKey="amount"
+                />
+                <SortHeader
+                  activeKey={sortKey}
+                  direction={sortDirection}
+                  label="Type"
+                  onSort={updateSort}
+                  sortKey="type"
+                />
+                <TableCell align="right" header>
+                  Actions
+                </TableCell>
+              </tr>
+            </TableHeader>
+            <TableBody>
+              {sortedTransactions.map((transaction) => (
+                <TransactionRow
+                  accountName={accountNameFor(transaction.accountId)}
+                  accounts={accounts}
+                  categoryName={categoryNameFor(transaction.categoryId)}
+                  deletingTransactionId={deletingTransactionId}
+                  editCategoriesFor={editCategoriesFor}
+                  editTransaction={editTransaction}
+                  editingTransactionId={editingTransactionId}
+                  formatMinor={formatMinor}
+                  isUpdatingTransaction={isUpdatingTransaction}
+                  key={transaction.id}
+                  onCancelEditingTransaction={onCancelEditingTransaction}
+                  onDeleteTransaction={onDeleteTransaction}
+                  onStartEditingTransaction={onStartEditingTransaction}
+                  onUpdateEditTransaction={onUpdateEditTransaction}
+                  onUpdateTransaction={onUpdateTransaction}
+                  transaction={transaction}
+                />
+              ))}
+            </TableBody>
+          </AppTable>
         )}
       </AppCard>
     </section>
@@ -466,9 +530,9 @@ function SortHeader({
   const Icon = !isActive ? ArrowDownUp : direction === "asc" ? ArrowUp : ArrowDown;
 
   return (
-    <th className={align === "right" ? "px-4 py-3 text-right" : "px-4 py-3"}>
+    <th className={align === "right" ? "px-4 py-3.5 text-right" : "px-4 py-3.5"}>
       <button
-        className="inline-flex min-h-0 items-center gap-1.5 rounded-md border-0 bg-transparent p-0 text-xs font-extrabold uppercase tracking-wide text-app-muted shadow-none hover:bg-transparent hover:text-app-text hover:shadow-none"
+        className="inline-flex min-h-0 items-center gap-1.5 rounded-md border-0 bg-transparent p-0 text-caption font-semibold uppercase tracking-[0.08em] text-app-muted shadow-none transition hover:bg-transparent hover:text-app-text hover:shadow-none focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-app-primary/20"
         type="button"
         onClick={() => onSort(sortKey)}
       >
@@ -521,7 +585,7 @@ function TransactionRow({
 
   if (isEditing) {
     return (
-      <tr className="bg-emerald-50/40">
+      <tr className="bg-app-primary/5">
         <td className="px-4 py-4" colSpan={7}>
           <form className="grid gap-3" onSubmit={onUpdateTransaction}>
             <div className="grid grid-cols-3 gap-3 max-xl:grid-cols-2 max-md:grid-cols-1">
@@ -613,12 +677,12 @@ function TransactionRow({
   }
 
   return (
-    <tr className="bg-white transition hover:bg-slate-50">
-      <td className="whitespace-nowrap px-4 py-4 text-sm font-bold text-slate-700">
+    <tr className="bg-white/36 transition hover:bg-white/62">
+      <td className="whitespace-nowrap px-4 py-4 text-sm font-semibold text-app-muted">
         {transaction.transactionDate}
       </td>
       <td className="min-w-56 px-4 py-4">
-        <span className="font-extrabold text-app-text">
+        <span className="font-semibold text-app-text">
           {transaction.description || categoryName}
         </span>
       </td>
@@ -629,8 +693,8 @@ function TransactionRow({
       <td
         className={
           transaction.transactionType === "income"
-            ? "whitespace-nowrap px-4 py-4 text-right font-extrabold text-emerald-600"
-            : "whitespace-nowrap px-4 py-4 text-right font-extrabold text-red-500"
+            ? "whitespace-nowrap px-4 py-4 text-right font-semibold text-app-income"
+            : "whitespace-nowrap px-4 py-4 text-right font-semibold text-app-expense"
         }
       >
         {transaction.transactionType === "income" ? "+" : "-"}
@@ -643,21 +707,22 @@ function TransactionRow({
       </td>
       <td className="px-4 py-4">
         <div className="flex justify-end gap-2">
-          <AppButton
+          <IconButton
+            icon={Pencil}
+            label="Edit transaction"
             onClick={() => onStartEditingTransaction(transaction)}
-            variant="ghost"
-          >
-            <Pencil className="mr-2 h-4 w-4" aria-hidden="true" />
-            Edit
-          </AppButton>
-          <AppButton
+          />
+          <IconButton
             disabled={deletingTransactionId === transaction.id}
+            icon={Trash2}
+            label={
+              deletingTransactionId === transaction.id
+                ? "Deleting transaction"
+                : "Delete transaction"
+            }
             onClick={() => onDeleteTransaction(transaction.id)}
-            variant="danger"
-          >
-            <Trash2 className="mr-2 h-4 w-4" aria-hidden="true" />
-            {deletingTransactionId === transaction.id ? "Deleting..." : "Delete"}
-          </AppButton>
+            tone="danger"
+          />
         </div>
       </td>
     </tr>

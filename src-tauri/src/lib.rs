@@ -19,6 +19,9 @@ pub fn run() {
             ))?;
 
             app.manage(AppState::new(pool));
+            if let Some(window) = app.get_webview_window("main") {
+                let _ = window.maximize();
+            }
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![

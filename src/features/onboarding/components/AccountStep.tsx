@@ -1,6 +1,6 @@
 import type { FormEvent, ReactNode } from "react";
 import { WalletCards } from "lucide-react";
-import { AppButton, AppInput } from "../../../components/ui";
+import { AppButton, AppInput, FormField } from "../../../components/ui";
 
 type AccountStepProps = {
   accountName: string;
@@ -22,23 +22,23 @@ export function AccountStep({
   onSubmit,
 }: AccountStepProps) {
   return (
-    <form className="grid max-w-2xl gap-5" onSubmit={onSubmit}>
+    <form className="mx-auto grid max-w-2xl gap-5" onSubmit={onSubmit}>
       <StepTitle
         description="Accounts represent where your money is stored."
         icon={<WalletCards className="h-6 w-6" aria-hidden="true" />}
         title="Create your first account"
       />
-      <div className="grid gap-3">
-        <label className="grid gap-2">
-          <span className="text-sm font-extrabold text-slate-700">Account name</span>
+      <FormField label="Account name">
+        {(id) => (
           <AppInput
             autoFocus
+            id={id}
             onChange={(event) => onChange({ accountName: event.target.value })}
             placeholder="Cash"
             value={accountName}
           />
-        </label>
-      </div>
+        )}
+      </FormField>
       <StepActions>
         <AppButton onClick={onBack} variant="ghost">
           Back
@@ -62,13 +62,11 @@ export function StepTitle({
 }) {
   return (
     <div className="grid gap-3">
-      <div className="grid h-12 w-12 place-items-center rounded-app bg-emerald-50 text-app-primary">
+      <div className="grid h-12 w-12 place-items-center rounded-app bg-app-primary/10 text-app-primary">
         {icon}
       </div>
       <div>
-        <h1 className="text-3xl font-extrabold leading-tight text-app-text max-sm:text-2xl">
-          {title}
-        </h1>
+        <h1 className="text-page text-app-text max-sm:text-section">{title}</h1>
         <p className="mt-2 text-sm leading-relaxed text-app-muted">{description}</p>
       </div>
     </div>

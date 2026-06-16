@@ -1,4 +1,13 @@
-import { AppBadge, AppButton, AppCard, AppInput, AppSelect, EmptyState } from "../../../components/ui";
+import { Palette, ShieldCheck, Type } from "lucide-react";
+import type { ReactNode } from "react";
+import {
+  AppBadge,
+  AppButton,
+  AppCard,
+  AppInput,
+  AppSelect,
+  EmptyState,
+} from "../../../components/ui";
 import { PageIntro } from "../../../components/layout/PageIntro";
 import { DataBackupSection } from "../components/DataBackupSection";
 import { setOnboardingCompleted } from "../../onboarding/utils/onboarding.utils";
@@ -16,10 +25,11 @@ export function SettingsPage() {
           <AppCard
             description="Default formatting preferences for your workspace."
             title="General"
+            tone="strong"
           >
             <div className="grid gap-4">
               <label className="grid gap-2">
-                <span className="text-sm font-extrabold text-slate-700">
+                <span className="text-caption font-semibold uppercase tracking-[0.08em] text-app-muted">
                   Default currency
                 </span>
                 <AppSelect disabled value="MAD">
@@ -27,7 +37,7 @@ export function SettingsPage() {
                 </AppSelect>
               </label>
               <label className="grid gap-2">
-                <span className="text-sm font-extrabold text-slate-700">
+                <span className="text-caption font-semibold uppercase tracking-[0.08em] text-app-muted">
                   Date format
                 </span>
                 <AppSelect disabled value="yyyy-mm-dd">
@@ -35,7 +45,7 @@ export function SettingsPage() {
                 </AppSelect>
               </label>
               <label className="grid gap-2">
-                <span className="text-sm font-extrabold text-slate-700">
+                <span className="text-caption font-semibold uppercase tracking-[0.08em] text-app-muted">
                   Number format
                 </span>
                 <AppInput disabled value="1,234.56" />
@@ -50,13 +60,17 @@ export function SettingsPage() {
           <AppCard
             description="Visual preferences for the app shell."
             title="Appearance"
+            tone="standard"
           >
             <div className="grid gap-3">
-              <div className="rounded-app-sm border border-app-border bg-slate-50/70 p-4">
+              <div className="rounded-app-sm border border-[rgba(60,38,52,0.08)] bg-white/48 p-4">
                 <div className="flex items-center justify-between gap-3">
-                  <h3 className="m-0 text-base font-extrabold normal-case tracking-normal text-app-text">
-                    Theme
-                  </h3>
+                  <div className="flex items-center gap-3">
+                    <div className="grid h-10 w-10 place-items-center rounded-app-sm bg-app-primary/10 text-app-primary">
+                      <Palette className="h-5 w-5" aria-hidden="true" />
+                    </div>
+                    <h3 className="text-card text-app-text">Theme</h3>
+                  </div>
                   <AppBadge variant="neutral">Placeholder</AppBadge>
                 </div>
                 <AppSelect className="mt-4" disabled value="light">
@@ -64,8 +78,16 @@ export function SettingsPage() {
                 </AppSelect>
               </div>
               <div className="grid grid-cols-2 gap-3 max-sm:grid-cols-1">
-                <InfoBlock label="Typography" text="Readable app fonts with system fallbacks." />
-                <InfoBlock label="Style" text="Soft backgrounds, clear cards, and subtle shadows." />
+                <InfoBlock
+                  icon={<Type className="h-4 w-4" aria-hidden="true" />}
+                  label="Typography"
+                  text="Funnel Display with local fallbacks."
+                />
+                <InfoBlock
+                  icon={<Palette className="h-4 w-4" aria-hidden="true" />}
+                  label="Style"
+                  text="Warm glass surfaces, restrained shadows, and clear focus states."
+                />
               </div>
             </div>
           </AppCard>
@@ -78,10 +100,19 @@ export function SettingsPage() {
             actions={<AppBadge variant="success">Local-first</AppBadge>}
             description="Wallet keeps finance data on this device. Cloud sync is not enabled."
             title="About"
+            tone="strong"
           >
             <div className="grid grid-cols-2 gap-3 text-sm max-sm:grid-cols-1">
-              <InfoBlock label="Privacy" text="Your data stays local to the desktop app." />
-              <InfoBlock label="Storage" text="Exports and backups are saved only where you choose." />
+              <InfoBlock
+                icon={<ShieldCheck className="h-4 w-4" aria-hidden="true" />}
+                label="Privacy"
+                text="Your data stays local to the desktop app."
+              />
+              <InfoBlock
+                icon={<ShieldCheck className="h-4 w-4" aria-hidden="true" />}
+                label="Storage"
+                text="Exports and backups are saved only where you choose."
+              />
             </div>
             <div className="mt-4 flex justify-end">
               <AppButton
@@ -98,10 +129,21 @@ export function SettingsPage() {
   );
 }
 
-function InfoBlock({ label, text }: { label: string; text: string }) {
+function InfoBlock({
+  icon,
+  label,
+  text,
+}: {
+  icon?: ReactNode;
+  label: string;
+  text: string;
+}) {
   return (
-    <div className="rounded-app-sm border border-app-border bg-slate-50/70 p-4">
-      <p className="font-extrabold text-app-text">{label}</p>
+    <div className="rounded-app-sm border border-[rgba(60,38,52,0.08)] bg-white/48 p-4">
+      <div className="flex items-center gap-2">
+        {icon ? <span className="text-app-primary">{icon}</span> : null}
+        <p className="font-semibold text-app-text">{label}</p>
+      </div>
       <p className="mt-1 text-sm leading-relaxed text-app-muted">{text}</p>
     </div>
   );

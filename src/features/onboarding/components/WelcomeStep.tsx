@@ -8,12 +8,12 @@ type WelcomeStepProps = {
 
 export function WelcomeStep({ onGetStarted, onImport }: WelcomeStepProps) {
   return (
-    <div className="grid max-w-2xl gap-6">
-      <div className="grid h-14 w-14 place-items-center rounded-app bg-emerald-50 text-app-primary">
+    <div className="mx-auto grid max-w-2xl justify-items-start gap-6">
+      <div className="grid h-14 w-14 place-items-center rounded-app bg-app-primary/10 text-app-primary">
         <Sparkles className="h-7 w-7" aria-hidden="true" />
       </div>
       <div>
-        <h1 className="text-4xl font-extrabold leading-tight text-app-text max-sm:text-3xl">
+        <h1 className="text-hero text-app-text max-sm:text-page">
           Welcome to Wallet
         </h1>
         <p className="mt-3 text-base leading-relaxed text-app-muted">
@@ -25,8 +25,11 @@ export function WelcomeStep({ onGetStarted, onImport }: WelcomeStepProps) {
         <AppButton onClick={onGetStarted} variant="primary">
           Get Started
         </AppButton>
-        <AppButton className="gap-2" onClick={onImport} variant="ghost">
-          <Download className="h-4 w-4" aria-hidden="true" />
+        <AppButton
+          icon={<Download className="h-4 w-4" aria-hidden="true" />}
+          onClick={onImport}
+          variant="secondary"
+        >
           Import Existing Data
         </AppButton>
       </div>

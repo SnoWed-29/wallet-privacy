@@ -15,10 +15,11 @@
         "title": "wallet",
         "width": 1440,
         "height": 900,
-        "minWidth": 1180,
-        "minHeight": 720,
+        "minWidth": 1100,
+        "minHeight": 700,
         "resizable": true,
         "maximizable": true,
+        "maximized": true,
         "center": true
       }
     ],

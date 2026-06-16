@@ -3,31 +3,31 @@ import { Sidebar, type NavigationItem } from "./Sidebar";
 import { Topbar } from "./Topbar";
 
 type AppLayoutProps = {
-  navigationItems: NavigationItem[];
-  eyebrow: string;
-  title: string;
-  status?: string;
   children: ReactNode;
+  eyebrow: string;
+  navigationItems: NavigationItem[];
+  status?: string;
+  title: string;
 };
 
 export function AppLayout({
-  navigationItems,
-  eyebrow,
-  title,
-  status,
   children,
+  eyebrow,
+  navigationItems,
+  status,
+  title,
 }: AppLayoutProps) {
   return (
-    <main className="min-h-screen bg-app-background bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.9),transparent_32rem)]">
-      <Sidebar items={navigationItems} />
-      <section className="min-h-screen pl-64 max-lg:pl-0">
-        <div className="min-h-screen px-9 pb-12 pt-7 max-lg:px-5 max-lg:pb-9 max-lg:pt-6">
-          <Topbar eyebrow={eyebrow} title={title} status={status} />
-          <section className="mx-auto grid w-full max-w-[1280px] gap-5">
+    <main className="wallet-app-bg min-h-screen p-4 text-app-text sm:p-5">
+      <div className="grid min-h-[calc(100vh-2rem)] grid-cols-[15rem_minmax(0,1fr)] gap-5 sm:min-h-[calc(100vh-2.5rem)] max-xl:grid-cols-[4.75rem_minmax(0,1fr)] max-md:grid-cols-1">
+        <Sidebar items={navigationItems} />
+        <section className="grid min-w-0 content-start gap-5">
+          <Topbar eyebrow={eyebrow} status={status} title={title} />
+          <section className="mx-auto grid w-full max-w-[1480px] gap-5 pb-7">
             {children}
           </section>
-        </div>
-      </section>
+        </section>
+      </div>
     </main>
   );
 }

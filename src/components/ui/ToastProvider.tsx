@@ -41,10 +41,10 @@ type ToastContextValue = {
 const ToastContext = createContext<ToastContextValue | null>(null);
 
 const toastStyles: Record<ToastVariant, string> = {
-  success: "border-emerald-200 bg-emerald-50 text-emerald-900",
-  error: "border-red-200 bg-red-50 text-red-900",
-  warning: "border-amber-200 bg-amber-50 text-amber-900",
-  info: "border-slate-200 bg-white text-slate-900",
+  success: "border-app-success/18 bg-white/82 text-app-success",
+  error: "border-app-danger/18 bg-white/82 text-app-danger",
+  warning: "border-app-warning/18 bg-white/82 text-app-warning",
+  info: "border-app-info/18 bg-white/82 text-app-info",
 };
 
 const toastIcons = {
@@ -101,7 +101,7 @@ export function ToastProvider({ children }: ToastProviderProps) {
           return (
             <div
               className={cn(
-                "flex items-start gap-3 rounded-app border p-4 shadow-app",
+                "flex items-start gap-3 rounded-app border p-4 shadow-app backdrop-blur-xl",
                 toastStyles[toast.variant],
               )}
               key={toast.id}
@@ -115,7 +115,7 @@ export function ToastProvider({ children }: ToastProviderProps) {
                 <p className="text-sm leading-relaxed">{toast.message}</p>
               </div>
               <button
-                className="min-h-0 rounded-md border-0 bg-transparent p-1 text-current opacity-70 shadow-none hover:bg-black/5 hover:opacity-100 hover:shadow-none"
+                className="min-h-0 rounded-md border-0 bg-transparent p-1 text-current opacity-70 shadow-none transition hover:bg-black/5 hover:opacity-100 hover:shadow-none"
                 type="button"
                 onClick={() => dismissToast(toast.id)}
                 aria-label="Dismiss notification"
