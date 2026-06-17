@@ -49,6 +49,7 @@ pub fn run() {
             commands::recurring_bills::update_recurring_bill,
             commands::recurring_bills::archive_recurring_bill,
             commands::recurring_bills::mark_recurring_bill_paid,
+            commands::reports::get_reports_summary,
             commands::savings_goals::create_savings_goal,
             commands::savings_goals::list_savings_goals,
             commands::savings_goals::update_savings_goal,

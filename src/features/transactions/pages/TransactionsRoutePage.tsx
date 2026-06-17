@@ -1,8 +1,20 @@
 import { TransactionsPage } from "./TransactionsPage";
 import { useWalletAppContext } from "../../wallet/WalletAppContext";
+import { useEffect } from "react";
+import { useLocation } from "react-router-dom";
+import type { TransactionFilterState, TransactionType } from "../../../types/wallet";
 
 export function TransactionsRoutePage() {
   const wallet = useWalletAppContext();
+  const location = useLocation();
+
+  useEffect(() => {
+    const filters = filtersFromSearch(location.search);
+
+    if (filters) {
+      void wallet.applyTransactionFilterValues(filters);
+    }
+  }, [location.search]);
 
   return (
     <TransactionsPage
@@ -44,4 +56,22 @@ export function TransactionsRoutePage() {
       transactionType={wallet.transactionType}
     />
   );
+}
+
+function filtersFromSearch(search: string): TransactionFilterState | null {
+  const params = new URLSearchParams(search);
+  const transactionType = params.get("transactionType") ?? "";
+  const filters: TransactionFilterState = {
+    accountId: params.get("accountId") ?? "",
+    categoryId: params.get("categoryId") ?? "",
+    transactionType:
+      transactionType === "income" || transactionType === "expense"
+        ? (transactionType as TransactionType)
+        : "",
+    startDate: params.get("startDate") ?? "",
+    endDate: params.get("endDate") ?? "",
+    search: params.get("search") ?? "",
+  };
+
+  return Object.values(filters).some((value) => value !== "") ? filters : null;
 }

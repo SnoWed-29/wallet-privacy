@@ -613,7 +613,20 @@ const [accountName, setAccountName] = useState("");
     }
   }
 
-  async function clearTransactionFilters() {
+  async function applyTransactionFilterValues(filters: TransactionFilterState) {
+    setError("");
+    setTransactionFilters(filters);
+    setAppliedTransactionFilters(filters);
+    setIsFilteringTransactions(true);
+
+    try {
+      await loadTransactions(filters);
+    } finally {
+      setIsFilteringTransactions(false);
+    }
+  }
+
+  async function clearTransactionFilters() {
     const emptyFilters = emptyTransactionFilters();
     setError("");
     setTransactionFilters(emptyFilters);
@@ -1250,9 +1263,10 @@ const [accountName, setAccountName] = useState("");
     archiveCategory,
     updateTransaction,
     deleteTransaction,
-    updateTransactionFilter,
-    applyTransactionFilters,
-    clearTransactionFilters,
+    updateTransactionFilter,
+    applyTransactionFilters,
+    applyTransactionFilterValues,
+    clearTransactionFilters,
     updateBudgetForm,
     updateEditBudget,
     createBudget,
