@@ -15,6 +15,8 @@ mod export_tests;
 mod import_tests;
 #[path = "unit/recurring_bills_tests.rs"]
 mod recurring_bills_tests;
+#[path = "unit/reports_tests.rs"]
+mod reports_tests;
 #[path = "unit/savings_goals_tests.rs"]
 mod savings_goals_tests;
 #[path = "unit/transactions_tests.rs"]
