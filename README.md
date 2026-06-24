@@ -6,6 +6,62 @@ This template should help get you started developing with Tauri, React and Types
 
 - [VS Code](https://code.visualstudio.com/) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer)
 
+## macOS Local Setup
+
+Install the required tools first:
+
+- Xcode Command Line Tools: `xcode-select --install`
+- Rust: `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`
+- Node.js 20.19 or newer
+
+After cloning the repository, install dependencies from the project root:
+
+```bash
+npm install
+```
+
+Run the desktop app in development mode:
+
+```bash
+npm run tauri dev
+```
+
+Create a production frontend build:
+
+```bash
+npm run build
+```
+
+Build the Tauri app:
+
+```bash
+npm run tauri build
+```
+
+Useful verification commands:
+
+```bash
+npm run typecheck
+npm run test
+cd src-tauri
+cargo check
+cargo clippy
+cargo test
+```
+
+Troubleshooting:
+
+- If `npm run tauri dev` fails with `failed to run 'cargo metadata'` or
+  `No such file or directory`, install Rust and restart your terminal so
+  `cargo` is on `PATH`.
+- If macOS reports missing compiler or linker tools, run
+  `xcode-select --install` and then retry the command.
+- If Vite reports that port `1420` is already in use, stop the other process
+  using that port before running `npm run tauri dev`.
+- npm may warn about install scripts that need approval for optional tooling.
+  Review them with `npm approve-scripts` if you need those packages' install
+  scripts to run.
+
 ## Testing
 
 Frontend component and feature tests use Vitest, React Testing Library, and jsdom.
