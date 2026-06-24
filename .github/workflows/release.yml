@@ -4,13 +4,22 @@ on:
   push:
     tags:
       - "v*"
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: "Existing version tag to build, for example v0.2.1"
+        required: true
+        type: string
 
 permissions:
   contents: write
 
 concurrency:
-  group: release-${{ github.ref_name }}
+  group: release-${{ github.event_name == 'workflow_dispatch' && inputs.tag_name || github.ref_name }}
   cancel-in-progress: true
+
+env:
+  RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag_name || github.ref_name }}
 
 jobs:
   release-checks:
@@ -20,6 +29,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ env.RELEASE_TAG }}
 
       - name: Install Linux dependencies
         run: |
@@ -44,9 +55,8 @@ jobs:
           cache-dependency-path: package-lock.json
 
       - name: Setup Rust
-        uses: actions-rust-lang/setup-rust-toolchain@v1
+        uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: stable
           components: rustfmt, clippy
 
       - name: Cache Cargo
@@ -86,6 +96,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ env.RELEASE_TAG }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -95,9 +107,7 @@ jobs:
           cache-dependency-path: package-lock.json
 
       - name: Setup Rust
-        uses: actions-rust-lang/setup-rust-toolchain@v1
-        with:
-          toolchain: stable
+        uses: dtolnay/rust-toolchain@stable
 
       - name: Cache Cargo
         uses: Swatinem/rust-cache@v2
@@ -112,14 +122,14 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
         with:
-          tagName: ${{ github.ref_name }}
-          releaseName: Wallet ${{ github.ref_name }}
+          tagName: ${{ env.RELEASE_TAG }}
+          releaseName: Wallet ${{ env.RELEASE_TAG }}
           releaseBody: |
-            Draft Wallet desktop release for ${{ github.ref_name }}.
+            Draft Wallet desktop release for ${{ env.RELEASE_TAG }}.
 
-            Review the attached Windows artifacts before publishing.
+            Review the attached Windows and macOS artifacts before publishing.
           releaseDraft: true
-          prerelease: ${{ contains(github.ref_name, 'alpha') || contains(github.ref_name, 'beta') || contains(github.ref_name, 'rc') }}
+          prerelease: ${{ contains(env.RELEASE_TAG, 'alpha') || contains(env.RELEASE_TAG, 'beta') || contains(env.RELEASE_TAG, 'rc') }}
           uploadUpdaterJson: false
           uploadUpdaterSignatures: false
 
@@ -149,7 +159,7 @@ jobs:
       - name: Upload Windows artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: wallet-windows-${{ github.ref_name }}
+          name: wallet-windows-${{ env.RELEASE_TAG }}
           if-no-files-found: error
           path: |
             src-tauri/target/release/bundle/**/*
@@ -158,4 +168,107 @@ jobs:
       - name: Attach SHA256 checksums to draft release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release upload ${{ github.ref_name }} SHA256SUMS.txt --clobber
+        run: gh release upload ${{ env.RELEASE_TAG }} SHA256SUMS.txt --clobber
+
+  macos-release:
+    name: macOS Release (${{ matrix.label }})
+    runs-on: ${{ matrix.runner }}
+    needs: release-checks
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: Apple Silicon
+            runner: macos-14
+            target: aarch64-apple-darwin
+            artifact-name: wallet-macos-apple-silicon
+          - label: Intel
+            runner: macos-13
+            target: x86_64-apple-darwin
+            artifact-name: wallet-macos-intel
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.RELEASE_TAG }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Cache Cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+          key: ${{ matrix.target }}
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      # Future signed/notarized macOS releases can pass Apple certificate,
+      # signing identity, Apple ID, team ID, and app-specific password secrets
+      # to this step. Current artifacts are intentionally unsigned and may show
+      # Gatekeeper warnings.
+      - name: Build Tauri app and attach macOS artifacts
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        with:
+          tagName: ${{ env.RELEASE_TAG }}
+          releaseName: Wallet ${{ env.RELEASE_TAG }}
+          releaseBody: |
+            Draft Wallet desktop release for ${{ env.RELEASE_TAG }}.
+
+            Review the attached Windows and macOS artifacts before publishing.
+          releaseDraft: true
+          prerelease: ${{ contains(env.RELEASE_TAG, 'alpha') || contains(env.RELEASE_TAG, 'beta') || contains(env.RELEASE_TAG, 'rc') }}
+          args: --target ${{ matrix.target }}
+          uploadUpdaterJson: false
+          uploadUpdaterSignatures: false
+
+      - name: Generate SHA256 checksums
+        run: |
+          set -euo pipefail
+
+          bundle_root="src-tauri/target/${{ matrix.target }}/release/bundle"
+          checksum_file="SHA256SUMS-${{ matrix.target }}.txt"
+
+          if [ ! -d "$bundle_root" ]; then
+            echo "No macOS release bundle directory found at $bundle_root" >&2
+            exit 1
+          fi
+
+          find "$bundle_root" -type f -print0 |
+            sort -z |
+            xargs -0 shasum -a 256 > "$checksum_file"
+
+          if [ ! -s "$checksum_file" ]; then
+            echo "No macOS release artifacts found in $bundle_root" >&2
+            exit 1
+          fi
+
+          cat "$checksum_file"
+
+      - name: Upload macOS artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact-name }}-${{ env.RELEASE_TAG }}
+          if-no-files-found: error
+          path: |
+            src-tauri/target/${{ matrix.target }}/release/bundle/**/*
+            SHA256SUMS-${{ matrix.target }}.txt
+
+      - name: Attach SHA256 checksums to draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload ${{ env.RELEASE_TAG }} SHA256SUMS-${{ matrix.target }}.txt --clobber
