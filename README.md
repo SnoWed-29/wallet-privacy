@@ -126,10 +126,10 @@ cargo test --manifest-path src-tauri/Cargo.toml
 
 ## Manual Releases
 
-Release builds are created only when a version tag matching `v*` is pushed.
-The release workflow first runs checks/tests, then builds the Windows desktop
-app and creates a draft GitHub Release only if those checks pass. The workflow
-does not change versions or create tags automatically.
+Release builds are created when a version tag matching `v*` is pushed. The
+release workflow first runs checks/tests, then builds the Windows and macOS
+desktop apps and creates a draft GitHub Release only if those checks pass. The
+workflow does not change versions or create tags automatically.
 
 Recommended process:
 
@@ -143,7 +143,23 @@ Recommended process:
    `git push origin dev`
    `git push origin vX.Y.Z`
 5. GitHub Actions runs the `release-checks` job.
-6. If checks pass, the `windows-release` job builds the Windows Tauri app.
+6. If checks pass, the `windows-release` job builds the Windows Tauri app and
+   the `macos-release` job builds Apple Silicon and Intel macOS apps.
 7. A draft GitHub Release is created for the tag.
 8. Inspect the attached installer/artifacts.
 9. Publish the release manually when ready.
+
+### Installing From a Release
+
+Windows users should download the Windows installer from the GitHub Release.
+
+macOS users should download the macOS `.dmg` that matches their Mac:
+
+- Apple Silicon Macs with M1, M2, M3, or newer chips should use the
+  `aarch64-apple-darwin` artifact.
+- Intel Macs should use the `x86_64-apple-darwin` artifact.
+
+Open the downloaded `.dmg` and drag Wallet into Applications. The current macOS
+builds are unsigned and not notarized, so macOS Gatekeeper may show a security
+warning the first time the app is opened. Signing and notarization can be added
+later with an Apple Developer account.
