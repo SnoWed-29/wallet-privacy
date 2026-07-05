@@ -1,5 +1,6 @@
 export type OnboardingStepId =
   | "welcome"
+  | "password"
   | "account"
   | "categories"
   | "budget"

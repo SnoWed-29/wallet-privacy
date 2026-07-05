@@ -14,17 +14,18 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
-            let pool = tauri::async_runtime::block_on(database::connection::initialize_database(
-                app.handle(),
-            ))?;
-
-            app.manage(AppState::new(pool));
+            let app_data_dir = database::connection::app_data_dir(app.handle())?;
+            app.manage(AppState::locked(app_data_dir));
             if let Some(window) = app.get_webview_window("main") {
                 let _ = window.maximize();
             }
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            commands::security::get_security_status,
+            commands::security::setup_app_password,
+            commands::security::unlock_wallet,
+            commands::security::lock_wallet,
             commands::accounts::create_account,
             commands::accounts::update_account,
             commands::accounts::archive_account,

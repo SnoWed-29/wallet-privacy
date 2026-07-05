@@ -144,6 +144,14 @@ export function DataBackupSection() {
   const [isRestoreOpen, setIsRestoreOpen] = useState(false);
 
   async function handleExportWalletData() {
+    const shouldExport = window.confirm(
+      "Plain Wallet exports are not encrypted. Store exported files somewhere safe. Continue?",
+    );
+
+    if (!shouldExport) {
+      return;
+    }
+
     setIsExporting(true);
 
     try {
@@ -157,7 +165,6 @@ export function DataBackupSection() {
       setIsExporting(false);
     }
   }
-
   async function handleCreateBackup() {
     setIsCreatingBackup(true);
 
@@ -211,7 +218,7 @@ export function DataBackupSection() {
 
           <ActionCard
             badge="Recovery"
-            description="Protect your data and recover from mistakes."
+            description="Create encrypted backups and recover from mistakes."
             icon={<ShieldCheck className="h-5 w-5" aria-hidden="true" />}
             title="Safety & Recovery"
           >
@@ -245,9 +252,9 @@ export function DataBackupSection() {
             </h3>
           </div>
           <div className="grid grid-cols-4 gap-3 text-sm max-xl:grid-cols-2 max-sm:grid-cols-1">
-            <InfoItem label="Export" text="Creates a portable file." />
+            <InfoItem label="Export" text="Creates a portable plain JSON file." />
             <InfoItem label="Import" text="Adds or replaces data." />
-            <InfoItem label="Backup" text="Creates a safety copy." />
+            <InfoItem label="Backup" text="Creates an encrypted safety copy." />
             <InfoItem label="Restore" text="Returns Wallet to a previous state." />
           </div>
         </div>

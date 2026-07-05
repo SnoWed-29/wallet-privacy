@@ -13,15 +13,10 @@ export function useOnboarding(wallet: WalletAppState) {
 
   useEffect(() => {
     function evaluateStatus() {
-      if (wallet.isBootstrapping) {
-        setStatus("checking");
-        return;
-      }
-
       const completed = readOnboardingCompleted();
 
       if (completed === true) {
-        setStatus("completed");
+        setStatus(wallet.isBootstrapping ? "checking" : "completed");
         return;
       }
 

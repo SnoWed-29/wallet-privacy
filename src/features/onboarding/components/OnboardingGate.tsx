@@ -2,8 +2,15 @@ import { ReactNode } from "react";
 import { OnboardingPage } from "../pages/OnboardingPage";
 import { useOnboarding } from "../hooks/useOnboarding";
 import { useWalletAppContext } from "../../wallet/WalletAppContext";
+import type { WalletSecurityState } from "../../security/hooks/useWalletSecurity";
 
-export function OnboardingGate({ children }: { children: ReactNode }) {
+export function OnboardingGate({
+  children,
+  security,
+}: {
+  children: ReactNode;
+  security: WalletSecurityState;
+}) {
   const wallet = useWalletAppContext();
   const onboarding = useOnboarding(wallet);
 
@@ -18,7 +25,12 @@ export function OnboardingGate({ children }: { children: ReactNode }) {
   }
 
   if (onboarding.status === "required") {
-    return <OnboardingPage onComplete={onboarding.completeOnboarding} />;
+    return (
+      <OnboardingPage
+        onComplete={onboarding.completeOnboarding}
+        security={security}
+      />
+    );
   }
 
   return <>{children}</>;

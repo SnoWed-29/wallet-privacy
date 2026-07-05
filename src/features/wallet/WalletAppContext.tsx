@@ -1,12 +1,12 @@
-import { createContext, ReactNode, useContext } from "react";
+﻿import { createContext, ReactNode, useContext } from "react";
 import { useWalletApp, type WalletAppState } from "../../hooks/useWalletApp";
 
 const WalletAppContext = createContext<WalletAppState | null>(null);
 
-type WalletAppProviderProps = { children: ReactNode };
+type WalletAppProviderProps = { children: ReactNode; enabled?: boolean };
 
-export function WalletAppProvider({ children }: WalletAppProviderProps) {
-  const wallet = useWalletApp();
+export function WalletAppProvider({ children, enabled = true }: WalletAppProviderProps) {
+  const wallet = useWalletApp(enabled);
 
   return (
     <WalletAppContext.Provider value={wallet}>

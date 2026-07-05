@@ -10,5 +10,6 @@ pub async fn get_reports_summary(
     state: State<'_, AppState>,
     request: ReportRequest,
 ) -> Result<ReportsSummary, AppError> {
-    ReportService::summary(&state.db, request).await
+    let db = state.db().await?;
+    ReportService::summary(&db, request).await
 }

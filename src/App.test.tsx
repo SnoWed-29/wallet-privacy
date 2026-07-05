@@ -14,6 +14,13 @@ import { onboardingCompletedStorageKey } from "./features/onboarding/utils/onboa
 describe("App", () => {
   beforeEach(() => {
     resetTauriMocks();
+    mockTauriSuccess("get_security_status", {
+      hasEncryptedStorage: true,
+      hasLegacyDatabase: false,
+      isUnlocked: true,
+      passwordConfigured: true,
+      legacyMigrationRequired: false,
+    });
     window.localStorage.setItem(onboardingCompletedStorageKey, "true");
     mockTauriSuccess("list_accounts", []);
     mockTauriSuccess("list_categories", [incomeCategoryFixture, expenseCategoryFixture]);

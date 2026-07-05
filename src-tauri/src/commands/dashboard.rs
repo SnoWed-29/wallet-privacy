@@ -9,5 +9,6 @@ use crate::state::app_state::AppState;
 pub async fn get_dashboard_summary(
     state: State<'_, AppState>,
 ) -> Result<DashboardSummary, AppError> {
-    DashboardService::get_summary(&state.db).await
+    let db = state.db().await?;
+    DashboardService::get_summary(&db).await
 }

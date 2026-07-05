@@ -6,5 +6,6 @@ use crate::state::app_state::AppState;
 
 #[tauri::command]
 pub async fn export_wallet_data(state: State<'_, AppState>) -> Result<String, AppError> {
-    ExportService::export_json(&state.db).await
+    let db = state.db().await?;
+    ExportService::export_json(&db).await
 }
