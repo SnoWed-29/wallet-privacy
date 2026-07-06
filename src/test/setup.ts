@@ -3,6 +3,7 @@ import { afterEach, vi } from "vitest";
 import { cleanup } from "@testing-library/react";
 
 Element.prototype.scrollIntoView = vi.fn();
+window.confirm = vi.fn(() => true);
 
 const localStorageShim = createLocalStorageShim();
 

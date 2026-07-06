@@ -8,7 +8,7 @@ Backend tests live under `src-tauri/tests` and are grouped by scope:
 
 Tests create a temporary SQLite database in the system temp directory, run the
 project migrations against it, and close it after each test. They do not use the
-desktop app data directory or `wallet.db`.
+desktop app data directory, production `wallet.encrypted.json`, or legacy `wallet.db`.
 
 Run the backend tests and checks from the repository root:
 

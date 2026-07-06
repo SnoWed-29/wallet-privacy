@@ -1,9 +1,12 @@
 import { beforeEach, describe, expect, test } from "vitest";
 import {
+  firstRunSecurityStatus,
+  lockedSecurityStatus,
   mockInvoke,
   mockTauriHandler,
   mockTauriSuccess,
   resetTauriMocks,
+  unlockedSecurityStatus,
 } from "../../../test/mocks/tauri";
 import App from "../../../App";
 import {
@@ -81,6 +84,80 @@ describe("onboarding", () => {
     expect(await screen.findByRole("heading", { name: "Welcome to Wallet" })).toBeVisible();
   });
 
+  test("first-run setup protects the wallet before loading finance data", async () => {
+    let currentStatus = firstRunSecurityStatus;
+    mockWalletBootstrap();
+    mockTauriHandler("get_security_status", () => currentStatus);
+    mockTauriHandler("setup_app_password", (args) => {
+      const request = readRequest(args);
+      currentStatus = unlockedSecurityStatus;
+      return currentStatus;
+    });
+    const user = userEvent.setup();
+
+    renderWithProviders(<App />, { route: "/dashboard" });
+
+    expect(await screen.findByRole("heading", { name: "Welcome to Wallet" })).toBeVisible();
+    expect(commandCallCount("list_accounts")).toBe(0);
+
+    await user.click(screen.getByRole("button", { name: /get started/i }));
+    expect(screen.getByRole("heading", { name: "Protect your wallet" })).toBeVisible();
+
+    await user.click(screen.getByRole("button", { name: /continue/i }));
+    expect(screen.getByText("Password is required.")).toBeVisible();
+    expect(commandCallCount("setup_app_password")).toBe(0);
+
+    await user.type(screen.getByLabelText("Password"), "topsecret1");
+    await user.type(screen.getByLabelText("Confirm password"), "topsecret2");
+    await user.click(screen.getByRole("button", { name: /continue/i }));
+
+    expect(screen.getByText("Passwords do not match.")).toBeVisible();
+    expect(commandCallCount("setup_app_password")).toBe(0);
+
+    await user.clear(screen.getByLabelText("Confirm password"));
+    await user.type(screen.getByLabelText("Confirm password"), "topsecret1");
+    await user.click(screen.getByRole("button", { name: /continue/i }));
+
+    expect(await screen.findByRole("heading", { name: "Create your first account" })).toBeVisible();
+    expect(lastCommandRequest("setup_app_password")).toEqual({ password: "topsecret1" });
+    expect(commandCallCount("list_accounts")).toBeGreaterThan(0);
+  });
+
+  test("returning encrypted wallet unlocks before finance data loads", async () => {
+    let currentStatus = lockedSecurityStatus;
+    mockWalletBootstrap({ accounts: [accountFixture], dashboard: dashboardFixture });
+    mockTauriHandler("get_security_status", () => currentStatus);
+    mockTauriHandler("unlock_wallet", (args) => {
+      const request = readRequest(args);
+      if (request.password !== "correct-password") {
+        throw new Error("That password did not unlock this wallet.");
+      }
+
+      currentStatus = unlockedSecurityStatus;
+      return currentStatus;
+    });
+    window.localStorage.setItem(onboardingCompletedStorageKey, "true");
+    const user = userEvent.setup();
+
+    renderWithProviders(<App />, { route: "/dashboard" });
+
+    expect(await screen.findByRole("heading", { name: "Unlock Wallet" })).toBeVisible();
+    expect(commandCallCount("list_accounts")).toBe(0);
+
+    await user.type(screen.getByLabelText("Password"), "wrong-password");
+    await user.click(screen.getByRole("button", { name: /unlock wallet/i }));
+
+    expect(await screen.findByText("That password did not unlock this wallet.")).toBeVisible();
+    expect(commandCallCount("list_accounts")).toBe(0);
+
+    await user.clear(screen.getByLabelText("Password"));
+    await user.type(screen.getByLabelText("Password"), "correct-password");
+    await user.click(screen.getByRole("button", { name: /unlock wallet/i }));
+
+    expect(await screen.findByRole("heading", { name: "Dashboard" })).toBeVisible();
+    expect(lastCommandRequest("unlock_wallet")).toEqual({ password: "correct-password" });
+    expect(commandCallCount("list_accounts")).toBeGreaterThan(0);
+  });
   test("welcome actions advance setup and open the existing import flow", async () => {
     mockWalletBootstrap();
     const user = userEvent.setup();

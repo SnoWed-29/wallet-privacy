@@ -9,3 +9,5 @@ pub mod recurring_bills;
 pub mod reports;
 pub mod savings_goals;
 pub mod transactions;
+
+pub mod security;

@@ -19,5 +19,7 @@ mod recurring_bills_tests;
 mod reports_tests;
 #[path = "unit/savings_goals_tests.rs"]
 mod savings_goals_tests;
+#[path = "unit/security_storage_tests.rs"]
+mod security_storage_tests;
 #[path = "unit/transactions_tests.rs"]
 mod transactions_tests;

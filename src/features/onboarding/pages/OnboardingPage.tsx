@@ -3,6 +3,7 @@ import { type FormEvent, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "../../../components/ui";
 import { ImportWorkflowModal } from "../../settings/components/DataBackupSection";
+import type { WalletSecurityState } from "../../security/hooks/useWalletSecurity";
 import { useWalletAppContext } from "../../wallet/WalletAppContext";
 import type {
   Account,
@@ -31,6 +32,7 @@ import { OnboardingLayout } from "../components/OnboardingLayout";
 import { onboardingSteps } from "../components/OnboardingProgress";
 import { BudgetStep } from "../components/BudgetStep";
 import { RecurringBillsStep } from "../components/RecurringBillsStep";
+import { PasswordStep } from "../components/PasswordStep";
 import type {
   CategoryCreationResult,
   OnboardingStepId,
@@ -39,6 +41,7 @@ import type {
 
 type OnboardingPageProps = {
   onComplete: () => void;
+  security: WalletSecurityState;
 };
 
 const recommendedCategories: RecommendedCategory[] = [
@@ -60,12 +63,13 @@ function readableError(error: unknown) {
     : "Setup could not save that item. Check the details and try again.";
 }
 
-export function OnboardingPage({ onComplete }: OnboardingPageProps) {
+export function OnboardingPage({ onComplete, security }: OnboardingPageProps) {
   const wallet = useWalletAppContext();
   const toast = useToast();
   const navigate = useNavigate();
   const [step, setStep] = useState<OnboardingStepId>("welcome");
   const [isImportOpen, setIsImportOpen] = useState(false);
+  const [isSavingPassword, setIsSavingPassword] = useState(false);
   const [isSavingAccount, setIsSavingAccount] = useState(false);
   const [isSavingCategories, setIsSavingCategories] = useState(false);
   const [isSavingBudget, setIsSavingBudget] = useState(false);
@@ -105,9 +109,40 @@ export function OnboardingPage({ onComplete }: OnboardingPageProps) {
     setStep(nextStep);
   }
 
+  function firstSetupStep() {
+    return security.status?.passwordConfigured ? "account" : "password";
+  }
+
+  function openImportAfterProtection() {
+    if (!security.status?.isUnlocked) {
+      toast.info("Create your wallet password before importing data.", "Protect wallet first");
+      goTo("password");
+      return;
+    }
+
+    setIsImportOpen(true);
+  }
+
   function back() {
     const index = onboardingSteps.indexOf(step);
     setStep(onboardingSteps[Math.max(0, index - 1)]);
+  }
+
+  async function handlePasswordSubmit(password: string) {
+    if (security.status?.passwordConfigured && security.status.isUnlocked) {
+      goTo("account");
+      return;
+    }
+
+    setIsSavingPassword(true);
+    try {
+      await security.setupPassword(password);
+      await wallet.reloadWalletData();
+      toast.success("Wallet protection is ready.", "Setup saved");
+      goTo("account");
+    } finally {
+      setIsSavingPassword(false);
+    }
   }
 
   async function handleAccountSubmit(event: FormEvent<HTMLFormElement>) {
@@ -347,8 +382,17 @@ export function OnboardingPage({ onComplete }: OnboardingPageProps) {
     <OnboardingLayout currentStep={step}>
       {step === "welcome" ? (
         <WelcomeStep
-          onGetStarted={() => goTo("account")}
-          onImport={() => setIsImportOpen(true)}
+          onGetStarted={() => goTo(firstSetupStep())}
+          onImport={openImportAfterProtection}
+        />
+      ) : null}
+
+      {step === "password" ? (
+        <PasswordStep
+          hasLegacyDatabase={Boolean(security.status?.hasLegacyDatabase)}
+          isSaving={isSavingPassword}
+          onBack={back}
+          onSubmit={handlePasswordSubmit}
         />
       ) : null}
 

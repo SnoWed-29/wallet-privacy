@@ -10,7 +10,8 @@ pub async fn validate_import_file(
     state: State<'_, AppState>,
     json: String,
 ) -> Result<ImportPreview, AppError> {
-    ImportService::preview(&state.db, &json).await
+    let db = state.db().await?;
+    ImportService::preview(&db, &json).await
 }
 
 #[tauri::command]
@@ -19,5 +20,8 @@ pub async fn import_wallet_data(
     json: String,
     mode: ImportMode,
 ) -> Result<ImportResult, AppError> {
-    ImportService::import_json(&state.db, &json, mode).await
+    let db = state.db().await?;
+    let result = ImportService::import_json(&db, &json, mode).await?;
+    state.persist().await?;
+    Ok(result)
 }

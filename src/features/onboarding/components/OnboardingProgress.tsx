@@ -2,6 +2,7 @@ import type { OnboardingStepId } from "../types/onboarding.types";
 
 const stepLabels: Record<OnboardingStepId, string> = {
   welcome: "Welcome",
+  password: "Protect",
   account: "Account",
   categories: "Categories",
   budget: "Budget",

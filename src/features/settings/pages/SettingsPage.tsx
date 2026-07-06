@@ -1,5 +1,5 @@
-import { Palette, ShieldCheck, Type } from "lucide-react";
-import type { ReactNode } from "react";
+import { LockKeyhole, Palette, ShieldCheck, Type } from "lucide-react";
+import { type ReactNode, useState } from "react";
 import {
   AppBadge,
   AppButton,
@@ -11,8 +11,24 @@ import {
 import { PageIntro } from "../../../components/layout/PageIntro";
 import { DataBackupSection } from "../components/DataBackupSection";
 import { setOnboardingCompleted } from "../../onboarding/utils/onboarding.utils";
+import type { WalletSecurityState } from "../../security/hooks/useWalletSecurity";
 
-export function SettingsPage() {
+const fallbackSecurity: WalletSecurityState = {
+  isChecking: false,
+  status: {
+    hasEncryptedStorage: true,
+    hasLegacyDatabase: false,
+    isUnlocked: true,
+    passwordConfigured: true,
+    legacyMigrationRequired: false,
+  },
+  lock: async () => fallbackSecurity.status!,
+  refresh: async () => fallbackSecurity.status!,
+  setupPassword: async () => fallbackSecurity.status!,
+  unlock: async () => fallbackSecurity.status!,
+};
+
+export function SettingsPage({ security = fallbackSecurity }: { security?: WalletSecurityState }) {
   return (
     <section className="grid gap-5">
       <PageIntro
@@ -94,6 +110,7 @@ export function SettingsPage() {
         </div>
 
         <div className="grid gap-5">
+          <SecurityPrivacySection security={security} />
           <DataBackupSection />
 
           <AppCard
@@ -126,6 +143,57 @@ export function SettingsPage() {
         </div>
       </div>
     </section>
+  );
+}
+
+function SecurityPrivacySection({ security }: { security: WalletSecurityState }) {
+  const [isLocking, setIsLocking] = useState(false);
+  const [error, setError] = useState("");
+
+  async function lockApp() {
+    setError("");
+    setIsLocking(true);
+    try {
+      await security.lock();
+    } catch (nextError) {
+      setError(nextError instanceof Error ? nextError.message : "Wallet could not lock.");
+    } finally {
+      setIsLocking(false);
+    }
+  }
+
+  return (
+    <AppCard
+      actions={<AppBadge variant={security.status?.isUnlocked ? "success" : "warning"}>{security.status?.isUnlocked ? "Unlocked" : "Locked"}</AppBadge>}
+      description="Wallet encrypts local storage on this device and only opens it after unlock."
+      title="Security & Privacy"
+      tone="strong"
+    >
+      <div className="grid gap-3">
+        <div className="grid grid-cols-2 gap-3 text-sm max-sm:grid-cols-1">
+          <InfoBlock
+            icon={<ShieldCheck className="h-4 w-4" aria-hidden="true" />}
+            label="Local encryption"
+            text="Wallet stores financial data in encrypted local storage."
+          />
+          <InfoBlock
+            icon={<LockKeyhole className="h-4 w-4" aria-hidden="true" />}
+            label="Password changes"
+            text="Changing the app password is planned for a future security update."
+          />
+        </div>
+        {error ? (
+          <p className="rounded-app-sm border border-app-danger/18 bg-app-danger/8 p-3 text-sm font-semibold text-app-danger">
+            {error}
+          </p>
+        ) : null}
+        <div className="flex justify-end">
+          <AppButton disabled={isLocking} onClick={lockApp} variant="secondary">
+            {isLocking ? "Locking..." : "Lock app"}
+          </AppButton>
+        </div>
+      </div>
+    </AppCard>
   );
 }
 
