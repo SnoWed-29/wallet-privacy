@@ -288,7 +288,7 @@ fn next_due_date_after_payment(paid_date: NaiveDate, frequency: &str) -> Result<
 
 fn parse_date(value: &str, label: &str) -> Result<NaiveDate, AppError> {
     NaiveDate::parse_from_str(value, "%Y-%m-%d")
-        .map_err(|_| AppError::Validation(format!("{label} must use YYYY-MM-DD format.")))
+        .map_err(|_| AppError::Validation(format!("{} must use YYYY-MM-DD format.", label)))
 }
 
 fn empty_string_to_none(value: Option<String>) -> Option<String> {
