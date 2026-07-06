@@ -261,7 +261,7 @@ impl SavingsGoalRepository {
         Self::find_by_id(pool, savings_goal_id)
             .await?
             .ok_or_else(|| {
-                AppError::Validation(format!("Savings goal '{goal_name}' does not exist."))
+                AppError::Validation(format!("Savings goal '{}' does not exist.", goal_name))
             })
     }
 }
