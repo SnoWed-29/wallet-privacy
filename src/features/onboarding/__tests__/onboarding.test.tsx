@@ -89,7 +89,7 @@ describe("onboarding", () => {
     mockWalletBootstrap();
     mockTauriHandler("get_security_status", () => currentStatus);
     mockTauriHandler("setup_app_password", (args) => {
-      const request = readRequest(args);
+      readRequest(args);
       currentStatus = unlockedSecurityStatus;
       return currentStatus;
     });
