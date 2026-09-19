@@ -1,882 +1,544 @@
 # Wallet Project Agent Instructions
 
-## Project Overview
+## Project Identity
 
 Wallet is a local-first, privacy-first desktop personal finance application.
 
-The application is open source and stores user data locally on the user's machine.
+Use the phrase "Private by design" when discussing privacy. Do not describe the
+app as providing perfect privacy.
 
-The project must work without a mandatory online account, cloud backend, or internet connection.
+The app must work without a mandatory online account, cloud backend, bank
+connection, or internet connection. Data is user-owned and stored locally.
 
-Current technology stack:
+Keep the project focused on personal finance unless the user explicitly requests
+a different module.
 
-* Tauri 2
-* React 19
-* TypeScript
-* Vite
-* Rust
-* SQLite
-* SQLx
+## Current Stack
 
----
+- Tauri 2 desktop app
+- React 19
+- React Router
+- TypeScript
+- Vite
+- Tailwind CSS
+- Rust
+- SQLite
+- SQLx
+- Vitest and Testing Library
+- WebdriverIO E2E tests through `tauri-driver`
 
-## Product Vision
+Use `npm.cmd` on Windows PowerShell when invoking npm scripts if `npm.ps1`
+execution policy blocks plain `npm`.
 
-Wallet helps users:
+## Current Product Surface
 
-* Track income and expenses
-* Manage multiple accounts and wallets
-* Organize transactions using categories
-* Create budgets
-* Track recurring bills and subscriptions
-* Define savings goals
-* View financial reports
-* Import and export data
-* Create encrypted backups
+Implemented and wired:
 
-Future modules may include:
+- Onboarding gate with local completion state in `wallet.onboardingCompleted`
+- Desktop app shell with sidebar, topbar, and routed feature pages
+- Routes: `/dashboard`, `/transactions`, `/manage`, `/planning`, `/reports`,
+  `/settings`
+- Dashboard summary with totals, current-month income/expense/net, account
+  balances, recent transactions, active budgets, upcoming recurring bills, and
+  active savings goals
+- Account and category management
+- Transaction creation, editing, deletion, search, filtering, and client-side
+  table sorting
+- Budgets, savings goals, savings goal contributions, recurring bills, and
+  mark-recurring-bill-paid flow
+- Local JSON export, merge import, replace import, backup creation, backup
+  validation, and destructive restore with safety backup
+- Reports and analytics with filtered summaries, trend/category charts, period
+  comparison, budget/account/bill/savings statistics, yearly overview, and
+  matching transaction drill-down
+- Shared design system components under `src/components/ui`
+- Warm glass visual redesign using the local Funnel Display font and Tailwind
+  tokens
 
-* Secure notes
-* Password management
-* Personal inventory
-* Document storage
+Currently placeholder or not implemented:
 
-For now, remain focused on the personal finance application.
+- Report export behavior is not implemented yet.
+- General settings and appearance controls are placeholders and are not
+  persisted.
+- Export/import/backup files are plain Wallet JSON; encryption is not
+  implemented.
+- There is no cloud sync, account authentication, bank integration, mobile app,
+  notification system, calendar integration, reminder daemon, or recurring
+  transaction automation beyond manual "mark paid".
 
----
-
-## Core Principles
-
-Always respect these principles:
-
-* Local-first
-* Privacy-first
-* Offline-first
-* Open source
-* User-owned data
-* No mandatory cloud services
-* No mandatory user account
-* Strong data portability
-* Maintainable architecture
-* Security before convenience
-* Data integrity before advanced features
-
-Never describe the application as providing perfect privacy.
-
-Use the term:
-
-"Private by design"
-
-when discussing privacy features.
-
----
-
-## Development Philosophy
-
-Build the application in phases.
-
-Do not introduce unnecessary complexity.
-
-Prefer:
-
-* Simplicity
-* Maintainability
-* Explicit code
-* Clear architecture
-
-over:
-
-* Premature optimization
-* Complex abstractions
-* Enterprise patterns that provide little value
-
----
-
-## Current Development Phase
-
-Phase 1:
-
-Core financial foundation.
-
-Implemented:
-
-* SQLite initialization in the Tauri app data directory
-* SQLx migrations embedded from `src-tauri/migrations`
-* Shared application state with a SQLite connection pool
-* Accounts module
-* Create account
-* Update account
-* Archive account
-* List non-archived accounts
-* Categories module
-* Create category
-* Update category
-* Archive category
-* List non-archived categories
-* Transactions module
-* Create transaction
-* Update transaction
-* Delete transaction
-* List transactions
-* Filter and search transactions
-* Calculated account balances
-* Budgets module
-* Create budget
-* List non-archived budgets
-* Update budget
-* Archive budget
-* Calculated budget usage from expense transactions
-* Savings goals module
-* Create savings goal
-* List non-archived savings goals
-* Update savings goal
-* Archive savings goal
-* Contribute to savings goal
-* Calculated savings goal progress
-* Savings goal contributions create expense transactions
-* Recurring bills module
-* Create recurring bill
-* List non-archived recurring bills
-* Update recurring bill
-* Archive recurring bill
-* Mark recurring bill as paid
-* Automatic next due date calculation
-* Recurring bill payments create expense transactions
-* Dashboard module
-* Read-only dashboard summary
-* Basic React UI for manually testing accounts, categories, transactions, filters, budgets, savings goals, recurring bills, and dashboard
-
-Not yet implemented:
-
-* Reports
-* Charts
-* Notifications
-* Import/export
-* Backups
-* Encryption
-* Cloud synchronization
-* Mobile support
-* Authentication
-* Bank integrations
-
-Do not implement not-yet-implemented features unless explicitly requested.
-
----
+Do not implement placeholder or roadmap items unless explicitly requested.
 
 ## Architecture
 
-Use a modular monolith.
+Use the existing modular monolith.
 
-Communication flow:
+Primary flow:
 
-React
--> Tauri Command
--> Service
--> Repository
--> SQLite
+```text
+React -> Tauri command -> Rust service -> Rust repository -> SQLite
+```
 
 Rules:
 
-* React never accesses SQLite directly.
-* React never executes SQL.
-* Rust contains business rules.
-* Rust validates all requests.
-* Repositories contain database queries.
-* Commands should remain thin.
-* Domain modules own validation and request normalization.
-* Repository methods should use explicit SQL and parameter binding.
+- React never accesses SQLite directly.
+- React never executes SQL.
+- Tauri commands stay thin and delegate to services.
+- Rust services own validation, request normalization, and business rules.
+- Repositories own explicit SQL and parameter binding.
+- Shared app state is `AppState` with a `SqlitePool`.
+- Use transactions for multi-step mutations and destructive imports/restores.
+- Add schema changes only through SQLx migrations.
+- Avoid broad refactors during feature work.
 
----
+## Key Paths
 
-## Backend Folder Structure
+- Frontend entry: `src/main.tsx`
+- Routes and app providers: `src/App.tsx`
+- App orchestration hook: `src/hooks/useWalletApp.ts`
+- Wallet context: `src/features/wallet/WalletAppContext.tsx`
+- Shared wallet DTOs: `src/types/wallet.ts`
+- Money/date/form helpers: `src/utils/walletHelpers.ts`
+- Layout components: `src/components/layout`
+- UI primitives: `src/components/ui`
+- Feature pages: `src/features/*/pages`
+- Backend entry: `src-tauri/src/lib.rs`
+- Tauri commands: `src-tauri/src/commands`
+- Domain services/models/DTOs: `src-tauri/src/domain`
+- Repositories: `src-tauri/src/repositories`
+- Cross-domain services: `src-tauri/src/services`
+- Migrations: `src-tauri/migrations`
+- Frontend tests: `src/**/*.test.tsx` and `src/**/*.test.ts`
+- Backend tests: `src-tauri/tests`
+- Desktop E2E tests: `e2e`
 
-Current backend structure:
+## Frontend Architecture
 
-src-tauri/src/
+`src/App.tsx` wraps the app with:
 
-main.rs
-lib.rs
+- `ToastProvider`
+- `WalletAppProvider`
+- `OnboardingGate`
+- `AppLayout`
+- React Router routes
 
-database/
-mod.rs
-connection.rs
+`useWalletApp.ts` is the main frontend orchestration layer. It owns:
 
-commands/
-mod.rs
-accounts.rs
-budgets.rs
-categories.rs
-dashboard.rs
-recurring_bills.rs
-savings_goals.rs
-transactions.rs
+- Loaded wallet data
+- Form state
+- Editing state
+- Saving/loading/deleting flags
+- Tauri `invoke` calls
+- Toast notifications
+- Wallet reloads after mutations
+- Amount conversion between normal strings and minor units
+- Confirmation prompts for destructive actions
 
-domain/
-mod.rs
+Keep feature pages mostly presentational. Prefer adding state and command wiring
+to `useWalletApp.ts` when a feature belongs to the global wallet workflow.
 
-accounts/
-mod.rs
-model.rs
-dto.rs
-service.rs
+Use `showToast` for success and error feedback. Errors displayed in the UI
+should be useful but should not dump sensitive data.
 
-budgets/
-mod.rs
-model.rs
-dto.rs
-service.rs
+## Design System
 
-categories/
-mod.rs
-model.rs
-dto.rs
-service.rs
+Follow `docs/ui-design-system.md`.
 
-dashboard/
-mod.rs
-dto.rs
-service.rs
+Current design direction:
 
-recurring_bills/
-mod.rs
-model.rs
-dto.rs
-service.rs
+- Warm glass surfaces
+- Local Funnel Display font
+- Primary `#9C43A6`, coral `#DB515E`, peach `#FEA86A`
+- Tailwind theme tokens under `app.*`
+- Shared CSS variables in `src/styles/globals.css`
+- Lucide icons only
+- App cards, buttons, inputs, selects, modals, tables, badges, toasts, progress,
+  empty states, and form helpers from `src/components/ui`
 
-savings_goals/
-mod.rs
-model.rs
-dto.rs
-service.rs
+Frontend rules:
 
-transactions/
-mod.rs
-model.rs
-dto.rs
-service.rs
+- Prefer shared UI primitives over raw repeated styling.
+- Use existing Tailwind tokens instead of hard-coded colors when possible.
+- Preserve responsive behavior at the minimum supported app size.
+- Keep labels, accessible names, focus states, and test selectors stable when
+  feasible.
+- Do not introduce a new icon set, charting library, state library, design
+  framework, or font without a clear request.
+- Avoid changing Rust financial logic for purely visual changes.
 
-repositories/
-mod.rs
-account_repository.rs
-budget_repository.rs
-category_repository.rs
-dashboard_repository.rs
-recurring_bill_repository.rs
-savings_goal_repository.rs
-transaction_repository.rs
+## Onboarding
 
-state/
-mod.rs
-app_state.rs
+Onboarding lives under `src/features/onboarding`.
 
-errors/
-mod.rs
-app_error.rs
+Flow:
+
+- Welcome
+- Account
+- Categories
+- Budget
+- Recurring bills
+- Complete
+
+The account step creates a `cash` account in `MAD` with initial balance `0`.
+Category, budget, and recurring bill steps are optional. The welcome step can
+open the existing import workflow. Successful import during setup reloads wallet
+data and jumps to completion.
+
+Completion is stored in local storage under `wallet.onboardingCompleted`.
+Settings can restart onboarding by setting that value to false.
+
+## Backend Commands
+
+Registered Tauri commands include:
+
+- Accounts: `create_account`, `update_account`, `archive_account`,
+  `list_accounts`
+- Categories: `create_category`, `update_category`, `archive_category`,
+  `list_categories`
+- Transactions: `create_transaction`, `update_transaction`,
+  `delete_transaction`, `list_transactions`, `filter_transactions`
+- Budgets: `create_budget`, `list_budgets`, `update_budget`, `archive_budget`
+- Savings goals: `create_savings_goal`, `list_savings_goals`,
+  `update_savings_goal`, `archive_savings_goal`,
+  `contribute_to_savings_goal`
+- Recurring bills: `create_recurring_bill`, `list_recurring_bills`,
+  `update_recurring_bill`, `archive_recurring_bill`,
+  `mark_recurring_bill_paid`
+- Dashboard: `get_dashboard_summary`
+- Export/import/backup: `export_wallet_data`, `validate_import_file`,
+  `import_wallet_data`, `create_wallet_backup`, `validate_backup_file`,
+  `restore_wallet_backup`
+
+Add new commands in `src-tauri/src/commands`, register them in
+`src-tauri/src/lib.rs`, and route them through services.
+
+## Database
+
+The runtime database file is `wallet.db` in the Tauri app data directory.
+
+In test mode, `WALLET_TEST_MODE=true` makes the backend use
+`WALLET_TEST_DATA_DIR` or a temp fallback instead of the real app data
+directory.
 
 Migrations:
 
-src-tauri/migrations/
-0001_create_accounts.sql
-0002_create_categories.sql
-0003_create_transactions.sql
-0004_create_budgets.sql
-0005_create_savings_goals.sql
-0006_create_recurring_bills.sql
+- `0001_create_accounts.sql`
+- `0002_create_categories.sql`
+- `0003_create_transactions.sql`
+- `0004_create_budgets.sql`
+- `0005_create_savings_goals.sql`
+- `0006_create_recurring_bills.sql`
 
----
+SQLite foreign keys are enabled in connection options and with
+`PRAGMA foreign_keys = ON`.
 
-## Tauri Commands
+Default seeded expense categories after migrations:
 
-Currently registered commands:
+- `Recurring Bills`
+- `Saving Contribution`
 
-* `create_account`
-* `update_account`
-* `archive_account`
-* `list_accounts`
-* `create_category`
-* `update_category`
-* `archive_category`
-* `list_categories`
-* `get_dashboard_summary`
-* `create_transaction`
-* `update_transaction`
-* `delete_transaction`
-* `list_transactions`
-* `filter_transactions`
-* `create_budget`
-* `list_budgets`
-* `update_budget`
-* `archive_budget`
-* `create_recurring_bill`
-* `list_recurring_bills`
-* `update_recurring_bill`
-* `archive_recurring_bill`
-* `mark_recurring_bill_paid`
-* `create_savings_goal`
-* `list_savings_goals`
-* `update_savings_goal`
-* `archive_savings_goal`
-* `contribute_to_savings_goal`
+Seeding is idempotent by category name.
 
-Command handlers should delegate to services and avoid business logic.
+## Money Rules
 
----
+Never store money as floating point.
 
-## Account Module
+Use integer minor units everywhere:
 
-Current account fields:
-
-* id
-* name
-* account_type
-* currency
-* initial_balance_minor
-* is_archived
-* created_at
-* updated_at
-
-Rules:
-
-* Name is required after trimming.
-* Initial balance defaults to 0.
-* Initial balance cannot be negative.
-* Currency is uppercased after trimming.
-* Currency defaults to MAD when omitted or blank.
-* Account type is lowercased after trimming.
-* Account type defaults to cash when omitted or blank.
-* New accounts are created with `is_archived = false`.
-* Archived accounts are hidden from normal account listings.
-* Archived accounts cannot receive new transactions.
-* Accounts with transaction history are archived rather than physically deleted.
-* Account balances are calculated from the initial balance and transaction history.
-* Accounts are listed newest first by `created_at`.
-
-Current limitations:
-
-* The frontend creates only cash accounts in MAD with an initial balance of 0.
-* There is no restore or physical delete flow.
-
----
-
-## Category Module
-
-Current category fields:
-
-* id
-* name
-* category_type
-* icon
-* color
-* is_archived
-* created_at
-* updated_at
-
-Rules:
-
-* Name is required after trimming.
-* Category type is lowercased after trimming.
-* Category type must be either `income` or `expense`.
-* Blank icon values are stored as NULL.
-* Blank color values are stored as NULL.
-* New categories are created with `is_archived = false`.
-* Archived categories are hidden from normal category listings.
-* Archived categories cannot be used for new transactions.
-* Archived categories cannot be used for new budgets.
-* Default expense categories are seeded after migrations run.
-* Seeded default categories are `Recurring Bills` and `Saving Contribution`.
-* Default category seeding does not create duplicates when a category name already exists.
-* Categories are listed newest first by `created_at`.
-
-Current limitations:
-
-* The frontend supports only name and type input.
-* The frontend sends blank icon and color values.
-* There is no restore or physical delete flow.
-
----
-
-## Transaction Module
-
-Current transaction fields:
-
-* id
-* account_id
-* category_id
-* transaction_type
-* amount_minor
-* description
-* transaction_date
-* created_at
-* updated_at
-
-Rules:
-
-* Account is required and must exist.
-* Archived accounts cannot receive new transactions.
-* Category is required and must exist.
-* Archived categories cannot be used for transactions.
-* Transaction type must be either `income` or `expense`.
-* Category type must match transaction type.
-* The `Saving Contribution` category is reserved for savings goal contributions and cannot be selected for manual transactions.
-* Amount must be greater than 0.
-* Transaction date is required.
-* Blank descriptions are stored as NULL.
-* Transactions can be edited and deleted.
-* Transaction filters are optional and can be combined.
-* Transaction search is case-insensitive and matches description, account name, and category name.
-
-Current limitations:
-
-* Transaction dates are stored as text from the date input.
-* There is no recurring transaction flow.
-
----
-
-## Budget Module
-
-Current budget fields:
-
-* id
-* name
-* category_id
-* amount_minor
-* month
-* year
-* is_archived
-* created_at
-* updated_at
-
-Calculated budget list fields:
-
-* category_name
-* spent_minor
-* remaining_minor
-* progress_percentage
-* is_near_limit
-* is_exceeded
-
-Rules:
-
-* Name is required after trimming.
-* Category is required and must exist.
-* Budgets can only use expense categories.
-* Archived categories cannot be used for new or updated budgets.
-* Amount must be greater than 0.
-* Month must be between 1 and 12.
-* Year must be valid.
-* A budget is a monthly spending limit tied to an expense category.
-* A budget is not tied to an account.
-* Budgets do not create transactions.
-* Budgets do not move money.
-* Budget spent, remaining, and progress values are derived from transactions and are not source-of-truth stored values.
-* New budgets are created with `is_archived = false`.
-* Archived budgets are hidden from normal budget listings.
-* Budget usage is calculated from expense transactions in the budget category during the selected month and year.
-* Income transactions do not count toward budget usage.
-* Expense transactions from any account count when they use the budget category and fall inside the budget month.
-* Budgets are archived rather than physically deleted.
-
-Current limitations:
-
-* There is no budget restore or physical delete flow.
-* A default category named `Budgets` is not required for budget calculations.
-* There are no budget reports, charts, notifications, or rollover rules.
-
----
-
-## Savings Goals Module
-
-Current savings goal fields:
-
-* id
-* name
-* target_amount_minor
-* current_amount_minor
-* deadline_date
-* is_archived
-* created_at
-* updated_at
-
-Calculated savings goal list fields:
-
-* remaining_amount_minor
-* progress_percentage
-
-Rules:
-
-* Name is required after trimming.
-* Target amount must be greater than 0.
-* Current amount defaults to 0 when omitted.
-* Current amount may be 0.
-* Current amount cannot be negative.
-* Current amount cannot exceed target amount.
-* Deadline date is optional.
-* New savings goals are created with `is_archived = false`.
-* Archived savings goals are hidden from normal savings goal listings.
-* Savings goals are archived rather than physically deleted.
-* Contributions require an existing, non-archived savings goal.
-* Contributions require an existing, non-archived account.
-* Contribution amount must be greater than 0.
-* Contributions cannot make the current amount exceed the target amount.
-* Contributions create real expense transactions.
-* Contributions use an expense category named `Saving Contribution`.
-* If no active expense category named `Saving Contribution` exists, it is created automatically.
-* Contribution transaction descriptions default to `Contribution to <goal name>`.
-* Contribution transaction creation and savings goal current amount updates run in one database transaction.
-* If any contribution step fails, the whole contribution rolls back.
-* Savings goal progress is calculated as `current_amount_minor / target_amount_minor * 100`.
-
-Current limitations:
-
-* There is no savings goal restore or physical delete flow.
-* There are no savings goal reports, charts, notifications, or recurring contribution rules.
-
----
-
-## Recurring Bills Module
-
-Current recurring bill fields:
-
-* id
-* name
-* account_id
-* category_id
-* amount_minor
-* frequency
-* next_due_date
-* last_paid_date
-* description
-* is_archived
-* created_at
-* updated_at
-
-Display fields returned by list commands:
-
-* account_name
-* category_name
-
-Rules:
-
-* Name is required after trimming.
-* Account is required, must exist, and must not be archived.
-* Category is required, must exist, must not be archived, and must be an expense category.
-* Amount must be greater than 0.
-* Frequency must be `daily`, `weekly`, `monthly`, or `yearly`.
-* Next due date is required and must use `YYYY-MM-DD` format.
-* Blank descriptions are stored as NULL.
-* New recurring bills are created with `is_archived = false`.
-* Archived recurring bills are hidden from normal recurring bill listings.
-* Recurring bills are archived rather than physically deleted.
-* Marking a recurring bill as paid requires an existing, non-archived recurring bill.
-* Marking paid creates a real expense transaction using the bill account, category, amount, and description.
-* If a bill has no description, payment transaction descriptions default to `Payment for <bill name>`.
-* Marking paid updates `last_paid_date`.
-* Marking paid advances `next_due_date` from the paid date by the bill frequency.
-* Daily bills advance by 1 day.
-* Weekly bills advance by 7 days.
-* Monthly bills advance by 1 calendar month.
-* Yearly bills advance by 12 calendar months.
-* Payment transaction creation and recurring bill updates run in one database transaction.
-* If any payment step fails, the whole payment rolls back.
-
-Current limitations:
-
-* There is no recurring bill restore or physical delete flow.
-* There are no notifications, reminder system, calendar integration, reports, or charts.
-
----
-
-## Dashboard Module
-
-Current dashboard summary fields:
-
-* total_balance_minor
-* monthly_income_minor
-* monthly_expense_minor
-* monthly_net_minor
-* accounts
-* recent_transactions
-* active_budgets
-* upcoming_recurring_bills
-* active_savings_goals
-
-Rules:
-
-* Dashboard is read-only.
-* Dashboard commands must not create, update, archive, or delete data.
-* Current month is determined in Rust.
-* Monthly income is calculated from income transactions in the current month.
-* Monthly expenses are calculated from expense transactions in the current month.
-* Monthly net is monthly income minus monthly expenses.
-* Total balance is calculated from active account balances using the same transaction-based balance logic as account listings.
-* Recent transactions return the latest 10 transactions by transaction date and creation time.
-* Dashboard budget data shows current-month active budgets.
-* Active budget progress is calculated from expense transactions for each budget month.
-* Budgets are marked near limit when progress is at least 80%.
-* Budgets are marked exceeded when progress is at least 100%.
-* Upcoming recurring bills include active bills due within the next 14 days.
-* Savings goal progress is calculated from current amount and target amount.
-
-Current limitations:
-
-* There are no dashboard charts, graphs, forecasts, reports, notifications, or editing controls.
-* Dashboard data refreshes on startup or when the user clicks Refresh Dashboard.
-
----
-
-## Money Handling Rules
-
-Never store money using floating point numbers.
-
-Incorrect:
-
-10.99
-
-Correct:
-
-1099
-
-Store all monetary values using integer minor units.
+- Rust: `i64`
+- SQLite: `INTEGER`
+- Frontend DTOs: numeric minor-unit fields
+- User inputs: normal strings converted by `normalAmountToMinor` and
+  `optionalNormalAmountToMinor`
 
 Examples:
 
-* 10.99 MAD -> 1099
-* 150.00 MAD -> 15000
+- `10.99 MAD` is stored as `1099`
+- `150.00 MAD` is stored as `15000`
 
-Use:
+Use `formatMinor`, `minorToNormalAmount`, and related helpers for display and
+edit forms.
 
-* i64 in Rust
-* INTEGER in SQLite
+## Domain Rules
 
----
+Accounts:
 
-## Database Rules
+- Name is required after trimming.
+- Initial balance defaults to `0` and cannot be negative.
+- Currency defaults to `MAD` and is uppercased.
+- Account type defaults to `cash` and is lowercased.
+- Account balances are derived from initial balance plus income minus expenses.
+- Normal account listings hide archived accounts.
+- Archived accounts cannot receive new transactions.
 
-Use:
+Categories:
 
-* SQLite
-* SQLx
-* Explicit SQL queries
-* Migrations
+- Name is required after trimming.
+- Type must be `income` or `expense`.
+- Blank icon/color values become `NULL`.
+- Normal category listings hide archived categories.
+- Archived categories cannot be used for transactions, budgets, or recurring
+  bills.
+- `Saving Contribution` is reserved for savings goal contribution transactions.
 
-Current database behavior:
+Transactions:
 
-* The database file is `wallet.db`.
-* The database is created in the Tauri app data directory.
-* The database is created automatically if missing.
-* Migrations run during Tauri setup.
-* Foreign keys are enabled in the SQLite connection options and with `PRAGMA foreign_keys = ON`.
+- Account and category are required and must exist.
+- Type must be `income` or `expense`.
+- Category type must match transaction type.
+- Amount must be greater than `0`.
+- Transaction date is required.
+- Blank descriptions become `NULL`.
+- Manual transactions cannot use the `Saving Contribution` category.
+- Filters can combine account, category, type, date range, and search.
+- Search matches description, account name, and category name.
 
-Always:
+Budgets:
 
-* Use parameterized queries.
-* Use transactions where appropriate.
-* Enable foreign keys for new connections.
-* Validate data before insertion.
-* Store timestamps as RFC 3339 strings unless the project chooses a different convention later.
+- Name, expense category, positive amount, month, and year are required.
+- Month must be `1..12`; year must be valid.
+- Budgets are monthly limits tied to an expense category, not an account.
+- Budgets do not move money and do not create transactions.
+- Spent/remaining/progress values are derived from matching expense
+  transactions in the budget month.
+- Near limit is `>= 80%`; exceeded is `>= 100%`.
 
-Never:
+Savings goals:
 
-* Build SQL using string concatenation.
-* Expose arbitrary SQL to the frontend.
-* Add schema changes without a migration.
+- Name is required.
+- Target amount must be positive.
+- Current amount defaults to `0`, cannot be negative, and cannot exceed target.
+- Deadline is optional.
+- Contributions require an active goal and active account.
+- Contributions must be positive and cannot exceed the remaining target.
+- Contributions create real expense transactions using `Saving Contribution`.
+- Contribution updates run in a database transaction and roll back as one unit.
 
----
+Recurring bills:
 
-## Frontend Rules
+- Name, active account, active expense category, positive amount, frequency, and
+  next due date are required.
+- Frequency must be `daily`, `weekly`, `monthly`, or `yearly`.
+- Dates must use `YYYY-MM-DD`.
+- Marking paid creates a real expense transaction, updates `last_paid_date`, and
+  advances `next_due_date` from the paid date.
+- Daily advances 1 day, weekly 7 days, monthly 1 calendar month, yearly 12
+  months.
+- Payment updates run in a database transaction and roll back as one unit.
 
-Current frontend scope:
+Dashboard:
 
-* Single React screen in `src/App.tsx`
-* Read-only dashboard section
-* Dashboard refresh button
-* Account creation form
-* Account edit and archive controls
-* Account list
-* Category creation form
-* Category type selector for income or expense
-* Category edit and archive controls
-* Category list
-* Transaction creation form
-* Transaction edit and delete controls
-* Transaction filter and search controls
-* Transaction list
-* Budget creation form
-* Budget edit and archive controls
-* Budget list with amount, spent, remaining, and progress percentage
-* Savings goal creation form
-* Savings goal edit and archive controls
-* Savings goal contribution controls
-* Savings goal list with target, current, remaining, and progress percentage
-* Recurring bill creation form
-* Recurring bill edit, archive, and mark-paid controls
-* Recurring bill list with amount, frequency, due dates, account, category, and description
-* Error display
-* Basic saving state for create, update, archive, delete, and filter actions
-* Empty states for accounts, categories, budgets, savings goals, recurring bills, and transactions
-* Responsive stacked form rows on narrow screens
+- Read-only.
+- Current month is determined in Rust.
+- Monthly income/expense/net are computed from current-month transactions.
+- Total balance uses active account balances.
+- Recent transactions show the latest 10 by transaction date and creation time.
+- Active budgets are current-month, non-archived budgets.
+- Upcoming recurring bills are active bills due in the next 14 days.
+- Active savings goals are non-archived goals with calculated progress.
 
-Keep UI simple.
+## Data Portability
 
-Do not add:
+Settings -> Data & Backup supports:
 
-* Routing
-* Tailwind redesigns
-* Dashboard redesigns
-* Charts
-* Reports
-* Notifications
-* State libraries
-* Advanced layouts
+- Export Wallet Data
+- Import Wallet Data
+- Create Backup
+- Restore Backup
 
-until requested.
+Export:
 
-Focus on functionality first.
+- Command: `export_wallet_data`
+- Produces pretty JSON with `version`, `exportedAt`, accounts, categories,
+  transactions, budgets, recurring bills, and savings goals.
+- Current export/import data version is `1.0`.
+- Empty collections are included as empty arrays.
+- Export files are not encrypted by Wallet.
 
----
+Import:
 
-## Code Quality Rules
+- Commands: `validate_import_file`, `import_wallet_data`
+- Accepts Wallet JSON exports only.
+- Validates JSON syntax, version, required fields, duplicate IDs, and entity
+  references before import.
+- Supports `merge` and `replace`.
+- Merge preserves existing data, skips duplicates, and uses `(Imported)` suffixes
+  for supported account and savings goal name conflicts.
+- Replace clears finance data and imports the file inside a database
+  transaction.
 
-When implementing features:
+Backup and restore:
 
-1. Inspect existing code first.
-2. Reuse current architecture.
-3. Make the smallest necessary change.
-4. Avoid unrelated refactors.
-5. Explain changes after implementation.
+- Commands: `create_wallet_backup`, `validate_backup_file`,
+  `restore_wallet_backup`
+- Backup wraps the export format with `backupVersion`, `createdAt`,
+  `appVersion`, and data counts.
+- Current backup wrapper version is `1.0`.
+- Restore validates first, creates a safety backup of current data, then reuses
+  replace import.
+- Restore is destructive and must require explicit UI confirmation.
+- Safety backup JSON is returned to the frontend so the user can save it.
 
-Prefer readability over cleverness.
-
-This project should remain approachable for developers who are new to Rust and Tauri.
-
----
-
-## Security Rules
+## Security And Privacy Rules
 
 Always prioritize:
 
-* Data integrity
-* Input validation
-* Explicit permissions
-* Safe database access
+- Data integrity
+- Input validation
+- Explicit permissions
+- Safe database access
+- User-owned local data
 
 Never:
 
-* Log sensitive financial information
-* Store secrets in source code
-* Store encryption keys in plaintext files
+- Log sensitive financial data.
+- Store secrets in source.
+- Add analytics, tracking, sync, cloud storage, auth, bank integrations, or
+  network features without an explicit request.
+- Add encryption casually. Design it deliberately if requested.
+- Build SQL by string concatenation.
+- Expose arbitrary SQL to the frontend.
 
-Future encryption features should be designed carefully and not added prematurely.
+## Testing And Verification
 
----
+Frontend:
 
-## Testing
+```text
+npm.cmd run typecheck
+npm.cmd run test
+npm.cmd run test:coverage
+npm.cmd run build
+```
 
-After backend modifications run:
+Backend:
 
-cargo check
+```text
+cargo fmt --manifest-path src-tauri/Cargo.toml -- --check
+cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets --all-features -- -D warnings
+cargo test --manifest-path src-tauri/Cargo.toml
+```
 
-from `src-tauri`.
+Desktop build:
 
-After frontend modifications run:
+```text
+npm.cmd run tauri -- build
+```
 
-npm run build
+Desktop E2E:
 
-For full manual application verification run:
+```text
+cargo install tauri-driver
+npm.cmd run test:e2e
+```
 
-npm run tauri dev
+E2E tests are desktop Tauri tests, not browser-only Vite tests. The runner uses
+`WALLET_TEST_MODE=true` and stores its database under `.tmp/wallet-e2e-data`.
+If `tauri-driver` is missing, `npm.cmd run test:e2e` exits with setup
+instructions.
 
-Expected behavior:
+Run checks appropriate to the files changed:
 
-* Application starts successfully.
-* SQLite database is created automatically.
-* Migrations run automatically.
-* Default expense categories are seeded without duplicates.
-* Accounts can be created.
-* Accounts can be listed.
-* Accounts can be edited and archived.
-* Categories can be created.
-* Categories can be listed.
-* Categories can be edited and archived.
-* Transactions can be created, edited, deleted, listed, filtered, and searched.
-* Account balances update from transaction history.
-* Budgets can be created, edited, archived, and listed.
-* Budget spent, remaining, and progress values are calculated from expense transactions.
-* Savings goals can be created, edited, archived, and listed.
-* Savings goal contributions create expense transactions.
-* Savings goal progress and remaining values are calculated from stored savings goal amounts.
-* Recurring bills can be created, edited, archived, and listed.
-* Recurring bills can be marked as paid.
-* Recurring bill payments create expense transactions and advance the next due date.
-* Dashboard summary can be viewed and refreshed.
-* Dashboard totals, monthly values, recent transactions, budgets, upcoming bills, and savings goal progress are read-only.
-* Data persists after restart.
+- UI-only change: typecheck, relevant Vitest tests, build.
+- Rust domain or repository change: fmt, clippy, Rust tests.
+- Import/export/backup change: frontend portability tests plus Rust
+  import/export/backup/data portability tests.
+- Full cross-layer feature: frontend checks, Rust checks, and Tauri build.
 
----
+## Current Test Coverage Shape
 
-## Development Roadmap
+Frontend tests cover:
 
-Completed foundation:
+- App shell and mocked Tauri backend startup
+- Shared UI components and toasts
+- Dashboard
+- Transactions
+- Manage Wallet
+- Planning
+- Settings
+- Onboarding and responsive onboarding behavior
+- Data export, import, backup, and restore UI flows
 
-* Accounts
-* Categories
-* Transactions
-* Transaction editing and deletion
-* Transaction filtering and search
-* Account management
-* Category management
-* Budgets
-* Savings goals
-* Recurring bills
-* Dashboard
-* Calculated account balances
-* Calculated budget usage
-* Calculated savings goal progress
-* SQLite persistence
+Rust tests cover:
 
-Future work requires an explicit request before implementation:
+- Unit validation for accounts, categories, transactions, budgets, savings
+  goals, recurring bills, export, import, and backup
+- Functional finance workflows and validation errors
+- Integration coverage for isolated SQLite databases, command payload behavior,
+  and data portability
 
-* Reports
-* Charts
-* Notifications
-* Reminder system
-* Calendar integration
-* Import/export
-* Backups
-* Encryption
-* Cloud synchronization
-* Mobile support
-* Authentication
-* Bank integrations
+E2E specs cover:
 
----
+- First launch
+- Manage wallet
+- Transactions
+- Planning
+- Full workflow
 
-## Definition of Success for Current Phase
+## Feature Work Rules
 
-A user can:
+Before implementing:
 
-1. Launch the application.
-2. Create an account.
-3. Edit or archive accounts.
-4. View non-archived accounts with calculated balances.
-5. Create income and expense categories.
-6. Edit or archive categories.
-7. Create, edit, delete, filter, and search transactions.
-8. Create, edit, archive, and view budgets.
-9. See budget spent, remaining, and progress values calculated from expense transactions.
-10. Create, edit, archive, and view savings goals.
-11. Contribute to a savings goal and see a generated expense transaction.
-12. See the selected account balance decrease after a savings goal contribution.
-13. See savings goal remaining and progress values.
-14. Create, edit, archive, and view recurring bills.
-15. Mark recurring bills as paid and see generated expense transactions.
-16. See the selected account balance decrease after a recurring bill payment.
-17. See recurring bill next due dates advance for daily, weekly, monthly, and yearly frequencies.
-18. View and refresh a read-only dashboard summary.
-19. See total balance, monthly income, monthly expenses, monthly net, recent transactions, active budgets, upcoming recurring bills, and savings goal progress.
-20. Restart the application.
-21. See previously created non-archived accounts, categories, transactions, budgets, savings goals, and recurring bills.
+1. Inspect the existing code and tests.
+2. Prefer existing patterns over new abstractions.
+3. Identify whether the change is frontend-only, backend-only, or cross-layer.
+4. Keep edits scoped to the feature.
+5. Add or update focused tests when behavior changes.
 
-without requiring internet access.
+When adding backend behavior:
 
-After this foundation is stable, development can move to reports, import/export, backups, encryption, reminders, calendar integration, and other explicitly requested roadmap items.
+- Add DTO fields deliberately.
+- Validate in the service layer.
+- Keep command handlers thin.
+- Use repository methods for SQL.
+- Use transactions for multi-step financial mutations.
+- Update export/import/backup schemas if the new entity or field must be
+  portable.
+- Add migrations for schema changes.
+
+When adding frontend behavior:
+
+- Reuse `useWalletApp.ts` for wallet-wide state and Tauri command calls.
+- Reuse UI primitives from `src/components/ui`.
+- Keep route pages readable and feature-focused.
+- Preserve the design system and accessibility conventions.
+- Handle loading, empty, success, error, disabled, and destructive confirmation
+  states.
+
+When changing data portability:
+
+- Keep export/import versions intentional.
+- Validate before import or restore.
+- Do not partially apply destructive operations.
+- Preserve user data on validation or import failure.
+- Update `docs/data-portability.md` and tests when the contract changes.
+
+## Current Window And Runtime Notes
+
+Tauri window config in `src-tauri/tauri.conf.json`:
+
+- Default size: `1440x900`
+- Minimum size: `1100x700`
+- Resizable and maximizable
+- Starts maximized in config and is also maximized during setup as a runtime
+  fallback
+- Dev URL: `http://localhost:1420`
+
+Do not assume browser-only behavior is enough for desktop verification when a
+change touches Tauri commands, filesystem flows, window behavior, or E2E-only
+paths.
+
+## Roadmap Guardrails
+
+Future work requires explicit user approval:
+
+- Report export
+- Notifications and reminders
+- Calendar integration
+- Encryption
+- Cloud sync
+- Authentication
+- Bank integrations
+- Mobile support
+- New non-finance modules such as notes, passwords, inventory, or documents
+
+When in doubt, preserve the local-first finance app and ask before expanding
+scope.

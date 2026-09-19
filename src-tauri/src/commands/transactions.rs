@@ -14,7 +14,10 @@ pub async fn create_transaction(
     state: State<'_, AppState>,
     request: CreateTransactionRequest,
 ) -> Result<Transaction, AppError> {
-    TransactionService::create(&state.db, request).await
+    let db = state.db().await?;
+    let transaction = TransactionService::create(&db, request).await?;
+    state.persist().await?;
+    Ok(transaction)
 }
 
 #[tauri::command]
@@ -22,7 +25,10 @@ pub async fn update_transaction(
     state: State<'_, AppState>,
     request: UpdateTransactionRequest,
 ) -> Result<Transaction, AppError> {
-    TransactionService::update(&state.db, request).await
+    let db = state.db().await?;
+    let transaction = TransactionService::update(&db, request).await?;
+    state.persist().await?;
+    Ok(transaction)
 }
 
 #[tauri::command]
@@ -30,12 +36,16 @@ pub async fn delete_transaction(
     state: State<'_, AppState>,
     request: DeleteTransactionRequest,
 ) -> Result<(), AppError> {
-    TransactionService::delete(&state.db, request).await
+    let db = state.db().await?;
+    TransactionService::delete(&db, request).await?;
+    state.persist().await?;
+    Ok(())
 }
 
 #[tauri::command]
 pub async fn list_transactions(state: State<'_, AppState>) -> Result<Vec<Transaction>, AppError> {
-    TransactionService::list(&state.db).await
+    let db = state.db().await?;
+    TransactionService::list(&db).await
 }
 
 #[tauri::command]
@@ -43,5 +53,6 @@ pub async fn filter_transactions(
     state: State<'_, AppState>,
     request: TransactionFilterRequest,
 ) -> Result<Vec<Transaction>, AppError> {
-    TransactionService::filter(&state.db, request).await
+    let db = state.db().await?;
+    TransactionService::filter(&db, request).await
 }

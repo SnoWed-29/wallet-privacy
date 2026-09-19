@@ -13,6 +13,8 @@ pub enum AppError {
     Io(#[from] std::io::Error),
     #[error("Application path error: {0}")]
     Path(#[from] tauri::Error),
+    #[error("Serialization error: {0}")]
+    Serialization(#[from] serde_json::Error),
 }
 
 impl Serialize for AppError {

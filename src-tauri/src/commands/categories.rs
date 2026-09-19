@@ -13,12 +13,16 @@ pub async fn create_category(
     state: State<'_, AppState>,
     request: CreateCategoryRequest,
 ) -> Result<Category, AppError> {
-    CategoryService::create(&state.db, request).await
+    let db = state.db().await?;
+    let category = CategoryService::create(&db, request).await?;
+    state.persist().await?;
+    Ok(category)
 }
 
 #[tauri::command]
 pub async fn list_categories(state: State<'_, AppState>) -> Result<Vec<Category>, AppError> {
-    CategoryService::list(&state.db).await
+    let db = state.db().await?;
+    CategoryService::list(&db).await
 }
 
 #[tauri::command]
@@ -26,7 +30,10 @@ pub async fn update_category(
     state: State<'_, AppState>,
     request: UpdateCategoryRequest,
 ) -> Result<Category, AppError> {
-    CategoryService::update(&state.db, request).await
+    let db = state.db().await?;
+    let category = CategoryService::update(&db, request).await?;
+    state.persist().await?;
+    Ok(category)
 }
 
 #[tauri::command]
@@ -34,5 +41,8 @@ pub async fn archive_category(
     state: State<'_, AppState>,
     request: ArchiveCategoryRequest,
 ) -> Result<(), AppError> {
-    CategoryService::archive(&state.db, request).await
+    let db = state.db().await?;
+    CategoryService::archive(&db, request).await?;
+    state.persist().await?;
+    Ok(())
 }

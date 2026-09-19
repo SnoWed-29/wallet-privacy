@@ -3,40 +3,48 @@ import { NavLink } from "react-router-dom";
 import { cn } from "../../lib/classNames";
 
 export type NavigationItem = {
-  label: string;
   href: string;
   icon: LucideIcon;
+  label: string;
 };
 
 type SidebarProps = {
-  items: NavigationItem[];
   className?: string;
+  items: NavigationItem[];
 };
 
-export function Sidebar({ items, className }: SidebarProps) {
+export function Sidebar({ className, items }: SidebarProps) {
+  const primaryItems = items.filter((item) => item.href !== "/settings");
+  const secondaryItems = items.filter((item) => item.href === "/settings");
+
   return (
     <aside
+      aria-label="Primary navigation"
       className={cn(
-        "fixed inset-y-0 left-0 z-10 flex w-64 flex-col gap-7 bg-app-sidebar px-4 py-7 text-white shadow-[16px_0_40px_rgba(15,23,42,0.14)] max-lg:static max-lg:w-auto max-lg:rounded-b-[1.375rem] max-lg:px-5 max-lg:py-5",
+        "glass-surface sticky top-4 z-10 flex h-[calc(100vh-2rem)] min-h-[42rem] flex-col rounded-app-lg px-3.5 py-4 text-app-text sm:top-5 sm:h-[calc(100vh-2.5rem)]",
+        "max-xl:items-center max-xl:px-2.5 max-md:sticky max-md:top-4 max-md:h-auto max-md:min-h-0 max-md:flex-row max-md:items-center max-md:justify-between max-md:gap-3 max-md:overflow-x-auto",
         className,
       )}
-      aria-label="Primary navigation"
       data-testid="app-sidebar"
     >
-      <div className="flex items-center gap-3 px-2">
-        <div className="grid h-11 w-11 place-items-center rounded-xl bg-white font-extrabold text-app-sidebar">
-          <WalletCards className="h-5 w-5" aria-hidden="true" />
+      <div className="flex min-w-0 items-center gap-3 px-1.5 max-xl:justify-center max-md:flex-none">
+        <div className="grid h-11 w-11 flex-none place-items-center rounded-app-sm bg-app-primary text-white shadow-[0_12px_26px_rgba(156,67,166,0.24)]">
+          <WalletCards className="h-5 w-5" aria-hidden="true" strokeWidth={1.9} />
         </div>
-        <div>
-          <strong className="block text-base">Wallet</strong>
-          <span className="mt-0.5 block text-xs text-slate-400">
+        <div className="min-w-0 max-xl:hidden max-md:block">
+          <strong className="block truncate text-base font-bold">Wallet</strong>
+          <span className="mt-0.5 block truncate text-caption text-app-muted">
             Local finance
           </span>
         </div>
       </div>
 
-      <nav className="grid gap-1.5 max-lg:grid-cols-2 max-sm:grid-cols-1">
-        {items.map((item) => (
+      <nav className="mt-8 flex flex-1 flex-col gap-2 max-xl:items-center max-md:mt-0 max-md:flex-row max-md:overflow-x-auto">
+        {primaryItems.map((item) => (
+          <SidebarLink item={item} key={item.href} />
+        ))}
+        <div className="flex-1 max-md:hidden" />
+        {secondaryItems.map((item) => (
           <SidebarLink item={item} key={item.href} />
         ))}
       </nav>
@@ -53,19 +61,40 @@ function SidebarLink({ item }: SidebarLinkProps) {
 
   return (
     <NavLink
+      aria-label={item.label}
       className={({ isActive }) =>
         cn(
-          "flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold text-slate-300 no-underline transition hover:translate-x-0.5 hover:bg-white/10 hover:text-white focus-visible:translate-x-0.5 focus-visible:bg-white/10 focus-visible:text-white focus-visible:outline-none",
-          isActive && "bg-white/10 text-white",
+          "group relative flex min-h-11 w-full items-center gap-3 rounded-app-sm px-3 py-2.5 text-sm font-semibold text-app-muted no-underline transition duration-200 motion-reduce:transition-none",
+          "hover:bg-white/58 hover:text-app-text focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-app-primary/20",
+          "max-xl:h-11 max-xl:w-11 max-xl:justify-center max-xl:px-0 max-md:w-auto max-md:px-3",
+          isActive && "bg-white/72 text-app-text shadow-app-soft",
         )
       }
-      to={item.href}
       data-testid={`nav-${item.label.toLowerCase().replace(/\s+/g, "-")}`}
+      title={item.label}
+      to={item.href}
     >
-      <span className="grid h-7 w-7 place-items-center rounded-lg bg-white/10 text-xs font-extrabold text-white">
-        <Icon className="h-4 w-4" aria-hidden="true" />
-      </span>
-      {item.label}
+      {({ isActive }) => (
+        <>
+          <span
+            className={cn(
+              "grid h-8 w-8 flex-none place-items-center rounded-app-xs transition",
+              isActive
+                ? "bg-app-primary/12 text-app-primary"
+                : "bg-white/48 text-app-muted group-hover:text-app-primary",
+            )}
+          >
+            <Icon className="h-[1.125rem] w-[1.125rem]" aria-hidden="true" strokeWidth={1.9} />
+          </span>
+          <span className="truncate max-xl:hidden max-md:inline">{item.label}</span>
+          {isActive ? (
+            <span
+              className="absolute left-0 top-1/2 h-7 w-1 -translate-y-1/2 rounded-r-full bg-gradient-to-b from-app-primary via-app-coral to-app-peach max-xl:left-1 max-xl:h-1 max-xl:w-7 max-xl:translate-y-[1.2rem] max-xl:rounded-full max-md:hidden"
+              aria-hidden="true"
+            />
+          ) : null}
+        </>
+      )}
     </NavLink>
   );
 }

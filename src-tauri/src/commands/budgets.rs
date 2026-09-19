@@ -11,12 +11,16 @@ pub async fn create_budget(
     state: State<'_, AppState>,
     request: CreateBudgetRequest,
 ) -> Result<Budget, AppError> {
-    BudgetService::create(&state.db, request).await
+    let db = state.db().await?;
+    let budget = BudgetService::create(&db, request).await?;
+    state.persist().await?;
+    Ok(budget)
 }
 
 #[tauri::command]
 pub async fn list_budgets(state: State<'_, AppState>) -> Result<Vec<Budget>, AppError> {
-    BudgetService::list(&state.db).await
+    let db = state.db().await?;
+    BudgetService::list(&db).await
 }
 
 #[tauri::command]
@@ -24,7 +28,10 @@ pub async fn update_budget(
     state: State<'_, AppState>,
     request: UpdateBudgetRequest,
 ) -> Result<Budget, AppError> {
-    BudgetService::update(&state.db, request).await
+    let db = state.db().await?;
+    let budget = BudgetService::update(&db, request).await?;
+    state.persist().await?;
+    Ok(budget)
 }
 
 #[tauri::command]
@@ -32,5 +39,8 @@ pub async fn archive_budget(
     state: State<'_, AppState>,
     request: ArchiveBudgetRequest,
 ) -> Result<(), AppError> {
-    BudgetService::archive(&state.db, request).await
+    let db = state.db().await?;
+    BudgetService::archive(&db, request).await?;
+    state.persist().await?;
+    Ok(())
 }
