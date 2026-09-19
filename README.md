@@ -1,165 +1,160 @@
-# Tauri + React + Typescript
+# Wallet
 
-This template should help get you started developing with Tauri, React and Typescript in Vite.
+> A local-first desktop app for managing your personal finances — **Private by design**.
 
-## Recommended IDE Setup
+[![CI](https://github.com/SnoWed-29/wallet-privacy/actions/workflows/ci.yml/badge.svg)](https://github.com/SnoWed-29/wallet-privacy/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/SnoWed-29/wallet-privacy?display_name=tag)](https://github.com/SnoWed-29/wallet-privacy/releases)
 
-- [VS Code](https://code.visualstudio.com/) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer)
+Wallet helps you track accounts, transactions, budgets, recurring bills, and savings goals without requiring an account, bank connection, or cloud service. Your finance data stays under your control on your device.
 
-## macOS Local Setup
+## Features
 
-Install the required tools first:
+- Create and manage accounts, income and expense categories, and transactions.
+- See balances, monthly income and spending, recent activity, budgets, upcoming bills, and savings goals in one dashboard.
+- Plan with monthly budgets, recurring bills, and savings-goal contributions.
+- Explore reports for trends, categories, accounts, budgets, bills, and savings goals.
+- Import, export, back up, and restore Wallet data.
+- Protect local data at rest with a password-based encrypted wallet.
+- Work entirely offline — no mandatory sign-in, analytics, bank integration, or cloud sync.
 
-- Xcode Command Line Tools: `xcode-select --install`
-- Rust: `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`
-- Node.js 20.19 or newer
+## Screenshots
 
-After cloning the repository, install dependencies from the project root:
+Here are a few views of Wallet in action.
+
+| Dashboard | Transactions |
+| --- | --- |
+| <img src="docs/screenshots/dashboard.png" alt="Wallet dashboard showing balances, monthly summary, transactions, budgets, bills, and savings goals" width="700"> | <img src="docs/screenshots/transactions.png" alt="Wallet transactions page" width="700"> |
+
+### Planning
+
+<img src="docs/screenshots/planning.png" alt="Wallet planning page for budgets, savings goals, and recurring bills" width="900">
+
+## Download
+
+Download the latest desktop installer from the [GitHub Releases page](https://github.com/SnoWed-29/wallet-privacy/releases/latest).
+
+- **Windows:** download and run the Windows installer attached to the release.
+- **macOS (Apple Silicon):** download the `.dmg` built for `aarch64-apple-darwin` (M1, M2, M3, and newer Macs).
+- **macOS (Intel):** download the `.dmg` built for `x86_64-apple-darwin`.
+
+Current macOS builds are unsigned and not notarized, so Gatekeeper may show a warning on first launch. Linux installers are not currently published.
+
+## Tech stack
+
+| Layer | Technologies |
+| --- | --- |
+| Desktop application | [Tauri 2](https://v2.tauri.app/) |
+| User interface | [React 19](https://react.dev/), [TypeScript](https://www.typescriptlang.org/), [React Router](https://reactrouter.com/), [Vite](https://vite.dev/), [Tailwind CSS](https://tailwindcss.com/) |
+| Backend | [Rust](https://www.rust-lang.org/), Tauri commands, domain services, and repositories |
+| Local data | SQLite through [SQLx](https://github.com/launchbadge/sqlx) |
+| Local-data protection | Argon2id password derivation and ChaCha20-Poly1305 authenticated encryption |
+| Testing | Vitest, React Testing Library, Rust tests, and WebdriverIO with `tauri-driver` |
+| Automation | GitHub Actions for CI, CodeQL, and desktop releases |
+
+## Run locally
+
+### Prerequisites
+
+Install the following before starting:
+
+- [Node.js 22](https://nodejs.org/) or newer
+- [Rust](https://www.rust-lang.org/tools/install) (stable toolchain)
+- Platform prerequisites required by [Tauri](https://v2.tauri.app/start/prerequisites/)
+
+On macOS, also install the Xcode Command Line Tools:
 
 ```bash
+xcode-select --install
+```
+
+### Setup
+
+Clone the repository and install the JavaScript dependencies:
+
+```bash
+git clone https://github.com/SnoWed-29/wallet-privacy.git
+cd wallet-privacy
 npm install
 ```
 
-Run the desktop app in development mode:
+Start the desktop app in development mode:
 
 ```bash
 npm run tauri dev
 ```
 
-Create a production frontend build:
+On Windows PowerShell, use `npm.cmd` if your execution policy prevents the `npm` command from running:
 
-```bash
-npm run build
+```powershell
+npm.cmd run tauri dev
 ```
 
-Build the Tauri app:
+The development app starts maximized and loads the Vite frontend from `http://localhost:1420`.
 
-```bash
-npm run tauri build
+## Start modifying the project
+
+The main areas of the codebase are:
+
+```text
+src/                     React application and feature pages
+src/components/          Shared UI components and layouts
+src/features/            Dashboard, transactions, planning, reports, settings, and onboarding
+src/hooks/useWalletApp.ts Frontend wallet workflow and Tauri command calls
+src-tauri/src/           Rust commands, services, domain logic, and repositories
+src-tauri/migrations/    SQLite migrations
+docs/                    Architecture, security, data portability, and product documentation
+e2e/                     Desktop end-to-end tests
 ```
 
-Useful verification commands:
+For changes to the interface, begin in `src/features` and reuse the shared components in `src/components/ui`. For finance rules or persistent-data changes, follow the backend flow:
+
+```text
+React → Tauri command → Rust service → repository → SQLite
+```
+
+Add schema changes through a new SQLx migration in `src-tauri/migrations`; the frontend should not access SQLite or execute SQL directly.
+
+## Useful commands
 
 ```bash
+# Frontend development only (without the Tauri desktop shell)
+npm run dev
+
+# Type-check, test, and build the frontend
 npm run typecheck
-npm run test
-cd src-tauri
-cargo check
-cargo clippy
-cargo test
-```
-
-Troubleshooting:
-
-- If `npm run tauri dev` fails with `failed to run 'cargo metadata'` or
-  `No such file or directory`, install Rust and restart your terminal so
-  `cargo` is on `PATH`.
-- If macOS reports missing compiler or linker tools, run
-  `xcode-select --install` and then retry the command.
-- If Vite reports that port `1420` is already in use, stop the other process
-  using that port before running `npm run tauri dev`.
-- npm may warn about install scripts that need approval for optional tooling.
-  Review them with `npm approve-scripts` if you need those packages' install
-  scripts to run.
-
-## Testing
-
-Frontend component and feature tests use Vitest, React Testing Library, and jsdom.
-Tauri API calls are mocked in `src/test/mocks/tauri.ts`, so unit tests never call
-the real Rust backend.
-
-```bash
 npm run test
 npm run test:coverage
-npm run typecheck
 npm run build
-```
 
-Desktop E2E scaffolding lives in `e2e/` and is intended for the real Tauri app
-through WebDriver/`tauri-driver`, not the browser-only Vite app.
+# Run Rust formatting, linting, and tests
+cargo fmt --manifest-path src-tauri/Cargo.toml -- --check
+cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets --all-features -- -D warnings
+cargo test --manifest-path src-tauri/Cargo.toml
 
-```bash
+# Build the desktop installers
+npm run tauri build
+
+# Run desktop end-to-end tests (requires tauri-driver)
 cargo install tauri-driver
 npm run test:e2e
 ```
 
-E2E runs set `WALLET_TEST_MODE=true` and write data to
-`.tmp/wallet-e2e-data`, so they do not use the real app data directory.
-See `e2e/README.md` for current setup notes and limitations.
+## Data and privacy
 
-## Continuous Integration
+Wallet is designed to run without a mandatory online account or cloud backend. In production, its encrypted wallet file is stored in the operating system's app-data directory. While the wallet is unlocked, decrypted data is kept in the app process so it can be used by SQLite and the interface.
 
-GitHub Actions runs CI on pushes to `dev`/`main` and pull requests targeting
-`dev`/`main`.
+You can create encrypted backups and also export plain JSON for portability. Keep plain exports somewhere safe: they are intentionally not encrypted. See the [security notes](docs/security-encryption.md) and [data portability documentation](docs/data-portability.md) for implementation details.
 
-CI checks:
+## Contributing
 
-- Frontend: `npm ci`, `npm run typecheck`, `npm run test`, `npm run build`
-- Rust backend: `cargo fmt --manifest-path src-tauri/Cargo.toml -- --check`,
-  `cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings`,
-  and `cargo test --manifest-path src-tauri/Cargo.toml`
-- Tauri: Linux build validation with the required Tauri system dependencies
+Contributions, bug reports, and ideas are welcome. Please open an [issue](https://github.com/SnoWed-29/wallet-privacy/issues) before substantial work so the approach can be discussed, then open a focused pull request with relevant tests.
 
-## CodeQL Security Scanning
+Before submitting a pull request, run the checks that apply to your change—at minimum `npm run typecheck`, `npm run test`, and `npm run build` for frontend work.
 
-GitHub CodeQL runs static analysis against the JavaScript/TypeScript frontend
-and Rust backend to look for security vulnerabilities and code quality issues.
-It runs on pushes to `dev`/`main`, pull requests targeting `dev`/`main`, and a
-weekly scheduled scan.
+## Releases
 
-CodeQL results appear in GitHub under the repository's Security tab in code
-scanning alerts, and any relevant pull request annotations are shown in the PR.
-CodeQL is a static analysis tool; it complements tests and manual review, but
-does not replace either one.
+Pushing a version tag such as `v0.2.1` starts the release workflow. It runs checks, builds Windows and macOS artifacts, and creates a draft GitHub Release for review. See [the release workflow](.github/workflows/release.yml) for the exact process.
 
-Run the same core checks locally with:
+## License
 
-```bash
-npm ci
-npm run typecheck
-npm run test
-npm run build
-cargo fmt --manifest-path src-tauri/Cargo.toml -- --check
-cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings
-cargo test --manifest-path src-tauri/Cargo.toml
-```
-
-## Manual Releases
-
-Release builds are created when a version tag matching `v*` is pushed. The
-release workflow first runs checks/tests, then builds the Windows and macOS
-desktop apps and creates a draft GitHub Release only if those checks pass. The
-workflow does not change versions or create tags automatically.
-
-Recommended process:
-
-1. Update versions manually in `package.json`, `src-tauri/Cargo.toml`, and
-   `src-tauri/tauri.conf.json` if needed.
-2. Commit the version change:
-   `git commit -m "chore(release): prepare vX.Y.Z"`
-3. Create an annotated tag:
-   `git tag -a vX.Y.Z -m "Wallet vX.Y.Z"`
-4. Push the branch and tag:
-   `git push origin dev`
-   `git push origin vX.Y.Z`
-5. GitHub Actions runs the `release-checks` job.
-6. If checks pass, the `windows-release` job builds the Windows Tauri app and
-   the `macos-release` job builds Apple Silicon and Intel macOS apps.
-7. A draft GitHub Release is created for the tag.
-8. Inspect the attached installer/artifacts.
-9. Publish the release manually when ready.
-
-### Installing From a Release
-
-Windows users should download the Windows installer from the GitHub Release.
-
-macOS users should download the macOS `.dmg` that matches their Mac:
-
-- Apple Silicon Macs with M1, M2, M3, or newer chips should use the
-  `aarch64-apple-darwin` artifact.
-- Intel Macs should use the `x86_64-apple-darwin` artifact.
-
-Open the downloaded `.dmg` and drag Wallet into Applications. The current macOS
-builds are unsigned and not notarized, so macOS Gatekeeper may show a security
-warning the first time the app is opened. Signing and notarization can be added
-later with an Apple Developer account.
+A license file has not yet been added to this repository. Until one is published, all rights are reserved by the project owner.
