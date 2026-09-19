@@ -54,6 +54,8 @@ struct UnlockedStorage {
     created_at: String,
 }
 
+type DecryptedWallet = (Zeroizing<[u8; 32]>, Vec<u8>, String, String);
+
 enum StorageState {
     Locked,
     Unlocked(UnlockedStorage),
@@ -411,7 +413,7 @@ fn encrypt_wallet_json(
 fn decrypt_wallet_json_with_password(
     json: &str,
     password: &str,
-) -> Result<(Zeroizing<[u8; 32]>, Vec<u8>, String, String), AppError> {
+) -> Result<DecryptedWallet, AppError> {
     let envelope = parse_envelope(json)?;
     let salt = decode_field("salt", &envelope.salt)?;
     let key = derive_key(password, &salt)?;
